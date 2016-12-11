@@ -4,8 +4,7 @@
 
 (defmacro wcar*
   [& body]
-  `(car/wcar {:host (env :antlion-clojure-redis-host)
-              :port (env :antlion-clojure-redis-port)}
+  `(car/wcar {:uri (env :redis-url)}
              ~@body))
 
 (def key-leaving-allowed?
