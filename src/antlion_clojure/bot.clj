@@ -4,7 +4,8 @@
             [environ.core :refer [env]]
             [antlion-clojure.slack :as slack :refer [map->Payload]]
             [slack-rtm.core :as rtm]
-            [clojure.string :refer [split]]))
+            [clojure.string :refer [split]])
+  (:use org.httpkit.server))
 
 (defn question
   [{:keys [user channel subtype]
@@ -140,6 +141,12 @@
   (slack/restart)
   (register-events!))
 
+(defn app [req]
+  {:status  200
+   :headers {"Content-Type" "text/html"}
+   :body    "hello HTTP!"})
+
 (defn -main [& args]
   (slack/start)
-  (register-events!))
+  (register-events!)
+  (run-server app {:port (Integer/parseInt (or (env :port) "3000"))}))

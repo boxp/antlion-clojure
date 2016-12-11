@@ -11,4 +11,5 @@
                  [clojail "1.0.6"]
                  [org.clojure/tools.namespace "0.2.10"]
                  [com.taoensso/carmine "2.15.0"]
-                 [environ "1.1.0"]])
+                 [environ "1.1.0"]
+                 [http-kit "2.2.0"]])
