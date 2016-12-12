@@ -11,7 +11,7 @@
   [{:keys [user channel subtype]
     :as res}]
   (let [problems (redis/get-all-problem)
-        [question answer] (when (not-empty problems) (rand-nth problems))]
+        [question answer] (when (not-empty problems) (rand-nth (vec problems)))]
     (if question
       (do (redis/set-checking-question? user question)
           [(map->Payload {:type :message
