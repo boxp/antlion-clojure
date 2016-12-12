@@ -34,7 +34,7 @@
 (defn check-question
   [{:keys [user channel]
     :as res}]
-  (let [parse-result (parse-form (-> res :text (split #" ") second))
+  (let [parse-result (parse-form (-> res :text (split #" " 2) second))
         question (redis/get-checking-question? user)
         answer (redis/get-problem question)]
     (if (= (:result parse-result) answer)
@@ -50,7 +50,7 @@
                      :channel channel
                      :text (str "ｻﾞﾝﾈﾝ!\n"
                                 question
-                                "----------\n"
+                                "\n----------\n"
                                 (format-result parse-result))}))))
 
 (defn- set-problem

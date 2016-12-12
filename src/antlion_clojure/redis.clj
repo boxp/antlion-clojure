@@ -23,7 +23,7 @@
   (wcar* (car/del (str key-leaving-allowed? user))))
 
 (def key-checking-question?
-  "is_checking_question")
+  "is_checking_question/")
 
 (defn set-checking-question?
   [user question]

@@ -1,10 +1,43 @@
 # antlion-clojure
 
-A Clojure library designed to ... well, that part is up to you.
+A Slack bot designed to play code escape game.
+
+## Prerequirements
+
+- java(http://www.oracle.com/technetwork/java/javase/downloads/index-jsp-138363.html)
+- redis(https://redis.io/)
+- leiningen(http://leiningen.org/)
 
 ## Usage
 
-FIXME
+1. Create the .lein-env file.
+
+```clj:.lein-env
+{:antlion-clojure-token "xoxb-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+ :antlion-clojure-invite-token "xoxp-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+ :redis-url "redis://127.0.0.1:6379"
+ :antlion-clojure-master-user-name "horai"}
+```
+
+2. Prepare redis for the local environment.
+
+## linux
+
+```bash
+	systemctl start redis
+```
+
+## mac
+
+```bash
+	redis-server /usr/local/etc/redis.conf
+```
+
+3. After that, we only need to do it!
+
+```bash
+	lein run
+```
 
 ## License
 
