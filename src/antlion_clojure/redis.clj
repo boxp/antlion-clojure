@@ -4,7 +4,7 @@
 
 (defmacro wcar*
   [& body]
-  `(car/wcar {:uri (env :redis-url)}
+  `(car/wcar {:pool {} :spec {:uri (env :redis-url)}}
              ~@body))
 
 (def key-leaving-allowed?
