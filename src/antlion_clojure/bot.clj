@@ -16,17 +16,16 @@
       (do (redis/set-checking-question? user question)
           [(map->Payload {:type :message
                           :user user
-                          :subtype
-                          (if (= "channel_leave" subtype)
-                            :channel_invite
-                            :group_invite)
                           :channel channel
                           :text (str "ﾄｲﾃﾈ!\n----------\n"
                                      question)})
            (map->Payload {:type :message
                           :user user
-                          :channel channel
-                          :subtype :channel_invite})])
+                          :subtype
+                          (if (= "channel_leave" subtype)
+                            :channel_invite
+                            :group_invite)
+                          :channel channel})])
       (map->Payload {:type :message
                      :user user
                      :channel channel
