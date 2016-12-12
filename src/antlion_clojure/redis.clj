@@ -50,7 +50,7 @@
           read-string))
 
 (defn get-all-problem []
-  (wcar* (car/hkeys key-problem)))
+  (wcar* (car/hgetall key-problem)))
 
 (defn del-problem
   [problem]
