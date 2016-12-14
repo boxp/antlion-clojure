@@ -7,6 +7,10 @@
             [clojure.string :refer [split]])
   (:use org.httpkit.server))
 
+(defn from-master?
+  [res]
+  (= (env :antlion-clojure-master-user-name) (get-in [:user_profile :name])))
+
 (defn question
   [{:keys [user channel subtype]
     :as res}]
@@ -74,7 +78,7 @@
 (defn del-problem
   [{:keys [user user_profile channel] :as res} question]
   (cond
-    (not= (:name user_profile) (env :antlion-clojure-master-user-name))
+    (not (from-master? res))
     (map->Payload {:type :message
                    :user user
                    :channel channel
@@ -94,6 +98,11 @@
   [{:keys [user channel]
     :as res}]
   (cond
+    (from-master? res)
+    (map->Payload {:type :message
+                   :user user
+                   :channel channel
+                   :text "ﾊﾞｲﾊﾞｲ!"})
     (redis/get-leaving-allowed? user)
     (map->Payload {:type :message
                    :user user
