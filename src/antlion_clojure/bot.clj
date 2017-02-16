@@ -9,7 +9,7 @@
 
 (defn from-master?
   [res]
-  (= (env :antlion-clojure-master-user-name) (get-in [:user_profile :name])))
+  (= (env :antlion-clojure-master-user-name) (get-in res [:user_profile :name])))
 
 (defn question
   [{:keys [user channel subtype]
