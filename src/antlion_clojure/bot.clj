@@ -94,6 +94,14 @@
                    :channel channel
                    :text "ｹｼﾀﾖ!"})))
 
+(defn- eval
+  [{:keys [user channel] :as res} txt]
+  (let [parse-result (parse-form txt)]
+    (map->Payload {:type :message
+                   :user user
+                   :channel channel
+                   :text (format-result parse-result)})))
+
 (defn- channel-leave-handler
   [{:keys [user channel]
     :as res}]
@@ -125,13 +133,17 @@
                      :text "ﾊﾞｶｼﾞｬﾈｰﾉ"}))))
 
 (defn- default-message-handler
-  [{:keys [user channel]
+  [{:keys [user channel text]
     :as res}]
-  (let [self (redis/get-self)]
+  (let [self (redis/get-self)
+        txt (-> (split text #" " 2) second)]
+    (println txt)
     (when (slack/message-for-me? res self)
       (cond
         (redis/get-checking-question? user)
         (check-question res)
+        (= (-> txt first) \()
+        (eval res txt)
         :else (command-message-handler res)))))
 
 (defn message-handler
