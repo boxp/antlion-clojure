@@ -94,6 +94,76 @@
                    :channel channel
                    :text "ｹｼﾀﾖ!"})))
 
+(defn- set-fyi
+  [{:keys [user user_profile channel] :as res} title information]
+  (try
+    (do
+      (redis/set-fyi user title information)
+      (map->Payload {:type :message
+                     :user user
+                     :channel channel
+                     :text (str "ﾄｳﾛｸｼﾀﾖ!\n----------\n"
+                                title ": " information)}))
+    (catch Exception e
+      (map->Payload {:type :message
+                     :user user
+                     :channel channel
+                     :text (str "ﾊﾞｶｼﾞｬﾈｰﾉ\n----------\n"
+                                title ": " (.getMessage e))}))))
+
+(defn- del-fyi
+  [{:keys [user user_profile channel] :as res} title]
+  (try
+    (let [res (redis/del-fyi user title)]
+      (if (zero? res)
+        (map->Payload {:type :message
+                       :user user
+                       :channel channel
+                       :text (str "ﾐﾂｶﾗﾅｲ−ﾖ!\n----------\n"
+                                  title)})
+        (map->Payload {:type :message
+                       :user user
+                       :channel channel
+                       :text (str "ｹｼﾀﾖ!\n----------\n"
+                                  title)})))
+    (catch Exception e
+      (map->Payload {:type :message
+                     :user user
+                     :channel channel
+                     :text (str "ﾊﾞｶｼﾞｬﾈｰﾉ\n----------\n"
+                                title ": " (.getMessage e))}))))
+
+(defn- format-fyi
+  [fyis]
+  (str "```\n"
+       (->>
+         (map (fn [[title information]]
+                (str title ": " information))
+              fyis)
+         (clojure.string/join "\n"))
+       "\n"
+       "```"))
+
+(defn- get-all-fyi
+  [{:keys [user user_profile channel] :as res} title]
+  (try
+    (let [res (redis/get-all-fyi user)]
+      (if (seq res)
+        (map->Payload {:type :message
+                       :user user
+                       :channel channel
+                       :text (format-fyi res)})
+        (map->Payload {:type :message
+                       :user user
+                       :channel channel
+                       :text "ﾊﾞｶｼﾞｬﾈｰﾉ"})))
+    (catch Exception e
+      (map->Payload {:type :message
+                     :user user
+                     :channel channel
+                     :text (str "ﾊﾞｶｼﾞｬﾈｰﾉ\n----------\n"
+                                title ": " (.getMessage e))}))))
+
 (defn- eval
   [{:keys [user channel] :as res} txt]
   (let [parse-result (parse-form txt)]
@@ -127,6 +197,9 @@
     (case command
       "set-problem" (set-problem res (first args) (second args))
       "del-problem" (del-problem res (first args))
+      "set-fyi" (set-fyi res (first args) (second args))
+      "del-fyi" (del-fyi res (first args))
+      ("fyi" "FYI") (get-all-fyi res (first args))
       (map->Payload {:type :message
                      :user user
                      :channel channel

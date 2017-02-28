@@ -65,3 +65,18 @@
 
 (defn get-self []
   (wcar* (car/get key-self)))
+
+(def key-fyi
+  "fyi/")
+
+(defn set-fyi
+  [user title information]
+  (wcar* (car/hset (str key-fyi user) title information)))
+
+(defn del-fyi
+  [user title]
+  (wcar* (car/hdel (str key-fyi user) title)))
+
+(defn get-all-fyi
+  [user]
+  (wcar* (car/hgetall* (str key-fyi user))))
