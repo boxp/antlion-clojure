@@ -172,6 +172,22 @@
                    :channel channel
                    :text (format-result parse-result)})))
 
+(defn- help
+  [{:keys [user channel] :as res} me]
+  (map->Payload {:type :message
+                 :user user
+                 :channel channel
+                 :text
+                 (str
+                     "ﾂｶｲｶﾀ\n"
+                     "```"
+                      me " help                   : この文章を表示\n"
+                      me " fyi                    : メモ一覧を表示\n"
+                      me " set-fyi <title> <body> : <title> <body>をメモ\n"
+                      me " del-fyi <title>        : <title>を削除\n"
+                      me " <S-Expression>         : <S-Expression>を評価\n"
+                      "```")}))
+
 (defn- channel-leave-handler
   [{:keys [user channel]
     :as res}]
@@ -191,10 +207,12 @@
 (defn- command-message-handler
   [{:keys [user channel]
     :as res}]
-  (let [txt (split (:text res) #" ")
+  (let [txt (split (:text res) #"\s+")
+        me (first txt)
         command (second txt)
         args (drop 2 txt)]
     (case command
+      "help" (help res me)
       "set-problem" (set-problem res (first args) (second args))
       "del-problem" (del-problem res (first args))
       "set-fyi" (set-fyi res (first args) (second args))
