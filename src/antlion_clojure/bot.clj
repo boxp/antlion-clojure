@@ -5,7 +5,8 @@
             [antlion-clojure.slack :as slack :refer [map->Payload]]
             [slack-rtm.core :as rtm]
             [clojure.string :refer [split]])
-  (:use org.httpkit.server))
+  (:use org.httpkit.server)
+  (:gen-class))
 
 (defn from-master?
   [res]
