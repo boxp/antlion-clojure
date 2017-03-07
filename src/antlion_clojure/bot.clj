@@ -244,7 +244,7 @@
   [{:keys [user channel text]
     :as res}]
   (let [self (redis/get-self)
-        txt (-> (split text #"\s+" 2) second)]
+        txt (some-> text (split #"\s+" 2) second)]
     (when (slack/message-for-me? res self)
       (cond
         (redis/get-checking-question? user)
