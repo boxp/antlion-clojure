@@ -4,13 +4,14 @@
             [environ.core :refer [env]]
             [antlion-clojure.slack :as slack :refer [map->Payload]]
             [slack-rtm.core :as rtm]
-            [clojure.string :refer [split]])
+            [clojure.string :refer [split]]
+            [com.stuartsierra.component :as component])
   (:use org.httpkit.server)
   (:gen-class))
 
 (defn from-master?
-  [res]
-  (= (env :antlion-clojure-master-user-name) (get-in res [:user_profile :name])))
+  [{:keys [master-user-name]} res]
+  (= master-user-name (get-in res [:user_profile :name])))
 
 (defn question
   [{:keys [user channel subtype]
@@ -206,10 +207,9 @@
                       "```")}))
 
 (defn- channel-leave-handler
-  [{:keys [user channel]
-    :as res}]
+  [slack {:keys [user channel] :as res}]
   (cond
-    (from-master? res)
+    (from-master? slack res)
     (map->Payload {:type :message
                    :user user
                    :channel channel
@@ -254,26 +254,41 @@
         :else (command-message-handler res)))))
 
 (defn message-handler
-  [res]
+  [slack res]
   (-> (case (:subtype res)
-        "channel_leave" (channel-leave-handler res)
+        "channel_leave" (channel-leave-handler slack res)
         "group_leave" (channel-leave-handler res)
         (default-message-handler res))
       slack/reaction!))
 
-(defn register-events! []
-  (slack/sub-to-event! :message message-handler))
+(defn register-events!
+  [slack]
+  (slack/sub-to-event! :message #(message-handler slack %)))
 
-(defn reload []
-  (slack/restart)
-  (register-events!))
+(defn -main [& args]
+  (slack/start)
+  (register-events!)
+  (run-server app {:port (Integer/parseInt (or (env :port) "3000"))}))
 
 (defn app [req]
   {:status  200
    :headers {"Content-Type" "text/html"}
    :body    "hello HTTP!"})
 
-(defn -main [& args]
-  (slack/start)
-  (register-events!)
-  (run-server app {:port (Integer/parseInt (or (env :port) "3000"))}))
+(defrecord BotComponent [master-user-name port server slack]
+  component/Lifecycle
+  (start [{:keys [slack] :as this}]
+    (println ";; Starting BotComponent")
+    (register-events! slack)
+    (-> this
+        (assoc :server (run-server app {:port port}))))
+  (stop [{:keys [server] :as this}]
+    (println ";; Stopping BotComponent")
+    (when-not (nil? server)
+      (server))
+    (-> this
+        (dissoc :server))))
+
+(defn bot-component [master-user-name port]
+  (map->BotComponent {:master-user-name master-user-name
+                      :port port}))

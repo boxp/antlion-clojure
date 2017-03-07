@@ -1,20 +1,18 @@
 (ns antlion-clojure.slack
   (:require [antlion-clojure.redis :as redis]
-            [environ.core :refer [env]]
             [gniazdo.core :as ws]
             [clojure.core.async :refer [go-loop <! put!]]
             [clj-slack.chat :as chat]
             [clj-slack.channels :as channels]
             [clj-slack.groups :as groups]
-            [slack-rtm.core :as rtm]))
+            [slack-rtm.core :as rtm]
+            [com.stuartsierra.component :as component]))
+
+(def api-url "https://slack.com/api")
 
 ;; REST API
 (defrecord Payload
   [type subtype user text channel group])
-
-(def connection
-  {:api-url "https://slack.com/api"
-   :token (env :antlion-clojure-token)})
 
 (defn message-for-me?
   [res self]
@@ -22,60 +20,54 @@
               (:text res)))
 
 (defn post
-  [{:keys [channel text]}]
+  [{:keys [connection]} {:keys [channel text]}]
   (chat/post-message connection channel text {:as_user "true"}))
 
 (defn reply
-  [{:keys [channel text user]}]
+  [{:keys [connection]} {:keys [channel text user]}]
   (chat/post-message connection channel (str "<@" user "> " text) {:as_user "true"}))
 
 (defn channel-invite
-  [{:keys [channel user]}]
+  [{:keys [connection invite-token]} {:keys [channel user]}]
   (-> connection
-      (assoc :token (env :antlion-clojure-invite-token))
+      (assoc :token invite-token)
       (channels/invite channel user)))
 
 (defn group-invite
-  [{:keys [channel user]}]
+  [{:keys [connection invite-token]} {:keys [channel user]}]
   (-> connection
-      (assoc :token (env :antlion-clojure-invite-token))
+      (assoc :token invite-token)
       (groups/invite channel user)))
 
 (defn- dispatch-message!
-  [{:keys [subtype user]
-    :as payload}]
+  [slack {:keys [subtype user] :as payload}]
   (cond
     (= :channel_invite subtype)
-    (channel-invite payload)
+    (channel-invite slack payload)
     (= :group_invite subtype)
-    (group-invite payload)
+    (group-invite slack payload)
     (nil? subtype)
     (if user
-      (reply payload)
-      (post payload))
+      (reply slack payload)
+      (post slack payload))
     :else nil))
 
 (defn- dispatch-payload!
-  [{:keys [type]
-    :as payload}]
+  [slack {:keys [type] :as payload}]
   (case type
-    :message (dispatch-message! payload)
+    :message (dispatch-message! slack payload)
     nil))
 
 (defn reaction!
-  [payload]
+  [slack payload]
   (cond
-    (vector? payload) (doseq [p payload] (dispatch-payload! p))
-    (map? payload) (dispatch-payload! payload)
+    (vector? payload) (doseq [p payload] (dispatch-payload! slack p))
+    (map? payload) (dispatch-payload! slack payload)
     :else nil))
 
-;; RTM API
-(def rtm-connection
-  (atom nil))
-
 (defn send-payload
-  [payload]
-  (let [dispatcher (:dispatcher @rtm-connection)]
+  [slack payload]
+  (let [dispatcher (-> slack :rtm-connection :dispatcher)]
     (cond
       (vector? payload)
       (doseq [p payload] (rtm/send-event dispatcher p))
@@ -83,21 +75,28 @@
       (rtm/send-event dispatcher payload))))
 
 (defn sub-to-event!
-  [type f]
-  (let [events-publication (:events-publication @rtm-connection)]
+  [slack type f]
+  (let [events-publication (-> slack :rtm-connection :events-publication)]
     (rtm/sub-to-event events-publication type f)))
 
-(defn start []
-  (when-not @rtm-connection
-    (reset! rtm-connection (rtm/connect (env :antlion-clojure-token)))
-    (redis/set-self (-> @rtm-connection :start :self :id))))
+(defrecord SlackComponent
+  [rtm-connection connection api-url invite-token]
+  component/Lifecycle
+  (start [this]
+    (println ";; Starting SlackComponent")
+    (let [token (-> this :connection :token)
+          rtm-connection (rtm/connect token)]
+      (redis/set-self (-> rtm-connection :start :self :id))
+      (-> this
+          (assoc :rtm-connection rtm-connection))))
+  (stop [{:keys [rtm-connection] :as this}]
+      (println ";; Stopping SlackComponent")
+      (when-not (nil? rtm-connection)
+        (rtm/send-event ((:dispatcher rtm-connection) :close)))
+      (-> this
+          (dissoc :rtm-connection))))
 
-(defn stop []
-  (when @rtm-connection
-    (rtm/send-event (:dispatcher @rtm-connection) :close)
-    (reset! rtm-connection nil)))
-
-(defn restart []
-  (do
-    (stop)
-    (start)))
+(defn slack-component
+  [antlion-clojure-token antlion-clojure-invite-token]
+  (map->SlackComponent {:connection {:token antlion-clojure-token :api-url api-url}
+                        :invite-token antlion-clojure-invite-token}))
