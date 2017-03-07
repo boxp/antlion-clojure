@@ -14,4 +14,5 @@
                  [http-kit "2.2.0"]
                  [com.stuartsierra/component "0.3.2"]]
   :profiles
-  {:dev {:source-paths ["src" "dev"]}})
+  {:dev {:source-paths ["src" "dev"]}
+   :uberjar {:main antlion-clojure.system}})
