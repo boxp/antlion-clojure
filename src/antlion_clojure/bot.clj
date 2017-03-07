@@ -67,14 +67,18 @@
       (map->Payload {:type :message
                      :user user
                      :channel channel
-                     :text (str "ﾄｳﾛｸｼﾀﾖ!\n----------\n"
-                                answer)}))
+                     :text (str "ﾄｳﾛｸｼﾀﾖ!\n"
+                                "```\n"
+                                answer
+                                "```")}))
     (catch Exception e
       (map->Payload {:type :message
                      :user user
                      :channel channel
-                     :text (str "ｺﾀｴｶﾞｵｶｼｲｰﾈ!\n----------\n"
-                                (.getMessage e))}))))
+                     :text (str "ｺﾀｴｶﾞｵｶｼｲｰﾈ!\n"
+                                "```\n"
+                                (.getMessage e)
+                                "```")}))))
 
 (defn del-problem
   [{:keys [user user_profile channel] :as res} question]
@@ -103,14 +107,18 @@
       (map->Payload {:type :message
                      :user user
                      :channel channel
-                     :text (str "ﾄｳﾛｸｼﾀﾖ!\n----------\n"
-                                title ": " information)}))
+                     :text (str "ﾄｳﾛｸｼﾀﾖ!\n"
+                                "```\n"
+                                title ": " information
+                                "```")}))
     (catch Exception e
       (map->Payload {:type :message
                      :user user
                      :channel channel
-                     :text (str "ﾊﾞｶｼﾞｬﾈｰﾉ\n----------\n"
-                                title ": " (.getMessage e))}))))
+                     :text (str "ﾊﾞｶｼﾞｬﾈｰﾉ\n"
+                                "```\n"
+                                title ": " (.getMessage e)
+                                "```")}))))
 
 (defn- del-fyi
   [{:keys [user user_profile channel] :as res} title]
@@ -120,19 +128,25 @@
         (map->Payload {:type :message
                        :user user
                        :channel channel
-                       :text (str "ﾐﾂｶﾗﾅｲ−ﾖ!\n----------\n"
-                                  title)})
+                       :text (str "ﾐﾂｶﾗﾅｲ−ﾖ!\n"
+                                  "```\n"
+                                  title
+                                  "```")})
         (map->Payload {:type :message
                        :user user
                        :channel channel
-                       :text (str "ｹｼﾀﾖ!\n----------\n"
-                                  title)})))
+                       :text (str "ｹｼﾀﾖ!\n"
+                                  "```\n"
+                                  title
+                                  "```")})))
     (catch Exception e
       (map->Payload {:type :message
                      :user user
                      :channel channel
-                     :text (str "ﾊﾞｶｼﾞｬﾈｰﾉ\n----------\n"
-                                title ": " (.getMessage e))}))))
+                     :text (str "ﾊﾞｶｼﾞｬﾈｰﾉ\n"
+                                "```\n"
+                                title ": " (.getMessage e)
+                                "```")}))))
 
 (defn- format-fyi
   [fyis]
@@ -162,8 +176,10 @@
       (map->Payload {:type :message
                      :user user
                      :channel channel
-                     :text (str "ﾊﾞｶｼﾞｬﾈｰﾉ\n----------\n"
-                                title ": " (.getMessage e))}))))
+                     :text (str "ﾊﾞｶｼﾞｬﾈｰﾉ\n"
+                                "```\n"
+                                title ": " (.getMessage e)
+                                "```")}))))
 
 (defn- eval
   [{:keys [user channel] :as res} txt]
@@ -229,7 +245,6 @@
     :as res}]
   (let [self (redis/get-self)
         txt (-> (split text #"\s+" 2) second)]
-    (println txt)
     (when (slack/message-for-me? res self)
       (cond
         (redis/get-checking-question? user)
