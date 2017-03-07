@@ -20,8 +20,8 @@
 (defn load-config []
   {:antlion-clojure-token (env :antlion-clojure-token)
    :antlion-clojure-invite-token (env :antlion-clojure-invite-token)
-   :master-user-name (env :master-user-name)
-   :port (env :port)})
+   :master-user-name (env :antlion-clojure-master-user-name)
+   :port (or (env :port) 3000)})
 
 (defn -main []
   (component/start

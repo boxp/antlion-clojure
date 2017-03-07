@@ -8,7 +8,7 @@
 
 (defn init []
   (alter-var-root #'system
-                  (constantly (app/example-system (load-config)))))
+                  (constantly (antlion-clojure-system (load-config)))))
 
 (defn start []
   (alter-var-root #'system component/start))

@@ -80,11 +80,11 @@
     (rtm/sub-to-event events-publication type f)))
 
 (defrecord SlackComponent
-  [rtm-connection connection api-url invite-token]
+  [rtm-connection connection invite-token]
   component/Lifecycle
   (start [this]
     (println ";; Starting SlackComponent")
-    (let [token (-> this :connection :token)
+    (let [token (-> connection :token)
           rtm-connection (rtm/connect token)]
       (redis/set-self (-> rtm-connection :start :self :id))
       (-> this
@@ -92,7 +92,7 @@
   (stop [{:keys [rtm-connection] :as this}]
       (println ";; Stopping SlackComponent")
       (when-not (nil? rtm-connection)
-        (rtm/send-event ((:dispatcher rtm-connection) :close)))
+        (rtm/send-event (:dispatcher rtm-connection) :close))
       (-> this
           (dissoc :rtm-connection))))
 

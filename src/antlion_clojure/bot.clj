@@ -255,20 +255,15 @@
 
 (defn message-handler
   [slack res]
-  (-> (case (:subtype res)
-        "channel_leave" (channel-leave-handler slack res)
-        "group_leave" (channel-leave-handler res)
-        (default-message-handler res))
-      slack/reaction!))
+  (->> (case (:subtype res)
+         "channel_leave" (channel-leave-handler slack res)
+         "group_leave" (channel-leave-handler slack res)
+         (default-message-handler res))
+       (slack/reaction! slack)))
 
 (defn register-events!
   [slack]
-  (slack/sub-to-event! :message #(message-handler slack %)))
-
-(defn -main [& args]
-  (slack/start)
-  (register-events!)
-  (run-server app {:port (Integer/parseInt (or (env :port) "3000"))}))
+  (slack/sub-to-event! slack :message #(message-handler slack %)))
 
 (defn app [req]
   {:status  200
