@@ -199,11 +199,15 @@
                  (str
                      "ﾂｶｲｶﾀ\n"
                      "```"
-                      me " help                   : この文章を表示\n"
-                      me " fyi                    : メモ一覧を表示\n"
-                      me " set-fyi <title> <body> : <title> <body>をメモ\n"
+                      me " help                          : この文章を表示\n"
+                      me " fyi                           : メモ一覧を表示\n"
+                      me " set-fyi <title> <body>        : <title> <body>をメモ\n"
+                      me " del-fyi <title>               : <title>を削除\n"
                       me " del-fyi <title>        : <title>を削除\n"
                       me " <S-Expression>         : <S-Expression>を評価\n"
+                      "------------------ 管理者限定機能 ------------------"
+                      me " add-allowed-channel <channel> : <channel>を監視対象から外す\n"
+                      me " rm-allowed-channel  <channel> : <channel>を監視対象に戻す\n"
                       "```")}))
 
 (defn- channel-leave-handler
@@ -284,6 +288,8 @@
     (-> this
         (dissoc :server))))
 
-(defn bot-component [master-user-name port]
+(defn bot-component [{:keys [master-user-name
+                             port
+                             allowed-channels]}]
   (map->BotComponent {:master-user-name master-user-name
                       :port port}))
