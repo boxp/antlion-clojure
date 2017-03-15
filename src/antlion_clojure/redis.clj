@@ -80,3 +80,17 @@
 (defn get-all-fyi
   [user]
   (wcar* (car/hgetall* (str key-fyi user))))
+
+(def key-leaving-allowed-channels
+  "leaving_allowed_channels")
+
+(defn add-leaving-allowed-channel
+  [channel-id]
+  (wcar* (car/sadd key-leaving-allowed-channels channel-id)))
+
+(defn rm-leaving-allowed-channel
+  [channel-id]
+  (wcar* (car/srem key-leaving-allowed-channels channel-id)))
+
+(defn get-all-leaving-allowed-channels []
+  (wcar* (car/smembers key-leaving-allowed-channels)))

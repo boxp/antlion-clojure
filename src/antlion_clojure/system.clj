@@ -14,7 +14,8 @@
   (component/system-map
     :slack (slack-component antlion-clojure-token antlion-clojure-invite-token)
     :bot (component/using
-           (bot-component master-user-name port)
+           (bot-component {:master-user-name master-user-name
+                           :port port})
            [:slack])))
 
 (defn load-config []
