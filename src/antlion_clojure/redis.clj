@@ -85,12 +85,12 @@
   "leaving_allowed_channels")
 
 (defn add-leaving-allowed-channel
-  [channel]
-  (wcar* (car/sadd key-leaving-allowed-channels channel)))
+  [channel-id]
+  (wcar* (car/sadd key-leaving-allowed-channels channel-id)))
 
 (defn rm-leaving-allowed-channel
-  [channel]
-  (wcar* (car/srem key-leaving-allowed-channels channel)))
+  [channel-id]
+  (wcar* (car/srem key-leaving-allowed-channels channel-id)))
 
 (defn get-all-leaving-allowed-channels []
   (wcar* (car/smembers key-leaving-allowed-channels)))

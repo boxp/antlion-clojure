@@ -2,7 +2,7 @@
   (:require [antlion-clojure.redis :as redis]
             [antlion-clojure.sandbox :refer [parse-form format-result]]
             [environ.core :refer [env]]
-            [antlion-clojure.slack :as slack :refer [map->Payload]]
+            [antlion-clojure.slack :as slack :refer [map->Payload parse-channel]]
             [slack-rtm.core :as rtm]
             [clojure.string :refer [split]]
             [com.stuartsierra.component :as component])
@@ -10,7 +10,7 @@
   (:gen-class))
 
 (defn from-master?
-  [{:keys [master-user-name]} res]
+  [{:keys [master-user-name] :as slack} res]
   (= master-user-name (get-in res [:user_profile :name])))
 
 (defn question
@@ -60,7 +60,8 @@
                                 (format-result parse-result))}))))
 
 (defn- set-problem
-  [{:keys [user channel] :as res}
+  [{:keys [master-user-name] :as slack}
+   {:keys [user channel] :as res}
    question answer]
   (try
     (do
@@ -82,9 +83,11 @@
                                 "```")}))))
 
 (defn del-problem
-  [{:keys [user user_profile channel] :as res} question]
+  [{:keys [master-user-name] :as slack}
+   {:keys [user user_profile channel] :as res}
+   question]
   (cond
-    (not (from-master? res))
+    (not (from-master? slack res))
     (map->Payload {:type :message
                    :user user
                    :channel channel
@@ -190,6 +193,61 @@
                    :channel channel
                    :text (format-result parse-result)})))
 
+(defn- add-allowed-channel
+  [slack
+   {:keys [user channel] :as res}
+   chan-str]
+  (let [c (parse-channel chan-str)]
+    (try
+      (if (from-master? slack res)
+        (do
+          (some-> c :id redis/add-leaving-allowed-channel)
+          (map->Payload {:type :message
+                         :user user
+                         :channel channel
+                         :text (str "ﾄｳﾛｸｼﾀﾖ!\n"
+                                    "```\n"
+                                    (:name c)
+                                    "```")}))
+        (map->Payload {:type :message
+                       :user user
+                       :channel channel
+                       :text "ｹﾝｹﾞﾝｶﾞﾅｲｰﾖ!"}))
+      (catch Exception e
+        (map->Payload {:type :message
+                       :user user
+                       :channel channel
+                       :text (str "ﾊﾞｶｼﾞｬﾈｰﾉ\n"
+                                  "```\n"
+                                  (:name c) ": " (.getMessage e)
+                                  "```")})))))
+
+(defn- rm-allowed-channel
+  [slack
+   {:keys [user channel] :as res}
+   chan-str]
+  (let [c (parse-channel chan-str)]
+    (try
+      (if (from-master? slack res)
+        (do
+          (-> c :id redis/rm-leaving-allowed-channel)
+          (map->Payload {:type :message
+                         :user user
+                         :channel channel
+                         :text "ｹｼﾀﾖ!"}))
+        (map->Payload {:type :message
+                       :user user
+                       :channel channel
+                       :text "ｹﾝｹﾞﾝｶﾞﾅｲｰﾖ!"}))
+      (catch Exception e
+        (map->Payload {:type :message
+                       :user user
+                       :channel channel
+                       :text (str "ﾊﾞｶｼﾞｬﾈｰﾉ\n"
+                                  "```\n"
+                                  (:name c) ": " (.getMessage e)
+                                  "```")})))))
+
 (defn- help
   [{:keys [user channel] :as res} me]
   (map->Payload {:type :message
@@ -203,11 +261,10 @@
                       me " fyi                           : メモ一覧を表示\n"
                       me " set-fyi <title> <body>        : <title> <body>をメモ\n"
                       me " del-fyi <title>               : <title>を削除\n"
-                      me " del-fyi <title>        : <title>を削除\n"
-                      me " <S-Expression>         : <S-Expression>を評価\n"
-                      "------------------ 管理者限定機能 ------------------"
+                      me " <S-Expression>                : <S-Expression>を評価\n"
+                      "------------------ 管理者限定機能 ------------------\n"
                       me " add-allowed-channel <channel> : <channel>を監視対象から外す\n"
-                      me " rm-allowed-channel  <channel> : <channel>を監視対象に戻す\n"
+                      me " rm-allowed-channel <channel>  : <channel>を監視対象に戻す\n"
                       "```")}))
 
 (defn- channel-leave-handler
@@ -223,11 +280,13 @@
                    :user user
                    :channel channel
                    :text "ｲﾝｼﾞｬﾈｰﾉ!"})
+    ((set (redis/get-all-leaving-allowed-channels)) channel)
+    []
     :else (question res)))
 
 (defn- command-message-handler
-  [{:keys [user channel]
-    :as res}]
+  [slack
+   {:keys [user channel] :as res}]
   (let [txt (split (:text res) #"\s+")
         me (first txt)
         command (second txt)
@@ -238,6 +297,8 @@
       "del-problem" (del-problem res (first args))
       "set-fyi" (set-fyi res (first args) (second args))
       "del-fyi" (del-fyi res (first args))
+      "add-allowed-channel" (add-allowed-channel slack res (first args))
+      "rm-allowed-channel" (rm-allowed-channel slack res (first args))
       ("fyi" "FYI") (get-all-fyi res (first args))
       (map->Payload {:type :message
                      :user user
@@ -245,24 +306,25 @@
                      :text "ﾊﾞｶｼﾞｬﾈｰﾉ"}))))
 
 (defn- default-message-handler
-  [{:keys [user channel text]
-    :as res}]
+  [slack
+   {:keys [user channel text] :as res}]
   (let [self (redis/get-self)
         txt (some-> text (split #"\s+" 2) second)]
+    (println res)
     (when (slack/message-for-me? res self)
       (cond
         (redis/get-checking-question? user)
         (check-question res)
         (= (-> txt first) \()
         (eval res txt)
-        :else (command-message-handler res)))))
+        :else (command-message-handler slack res)))))
 
 (defn message-handler
   [slack res]
   (->> (case (:subtype res)
          "channel_leave" (channel-leave-handler slack res)
          "group_leave" (channel-leave-handler slack res)
-         (default-message-handler res))
+         (default-message-handler slack res))
        (slack/reaction! slack)))
 
 (defn register-events!

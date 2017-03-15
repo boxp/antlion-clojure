@@ -14,6 +14,17 @@
 (defrecord Payload
   [type subtype user text channel group])
 
+(defrecord Channel
+  [id name])
+
+(defn parse-channel
+  [s]
+  (some-> (re-matches #"\<(.*)\>" s)
+          second
+          (clojure.string/split #"\|")
+          (update 0 #(->> % (drop 1) (apply str)))
+          (#(apply ->Channel %))))
+
 (defn message-for-me?
   [res self]
   (re-matches (re-pattern (str "\\<\\@" self "\\> .*"))
