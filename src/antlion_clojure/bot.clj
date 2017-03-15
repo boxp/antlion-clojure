@@ -293,8 +293,8 @@
         args (drop 2 txt)]
     (case command
       "help" (help res me)
-      "set-problem" (set-problem res (first args) (second args))
-      "del-problem" (del-problem res (first args))
+      "set-problem" (set-problem slack res (first args) (second args))
+      "del-problem" (del-problem slack res (first args))
       "set-fyi" (set-fyi res (first args) (second args))
       "del-fyi" (del-fyi res (first args))
       "add-allowed-channel" (add-allowed-channel slack res (first args))
