@@ -2,9 +2,14 @@
   (:require [environ.core :refer [env]]
             [taoensso.carmine :as car :refer [wcar]]))
 
-(defmacro wcar*
+(defmacro master-wcar*
   [& body]
-  `(car/wcar {:pool {} :spec {:uri (env :redis-url)}}
+  `(car/wcar {:pool {} :spec {:uri (env :redis-master-port)}}
+             ~@body))
+
+(defmacro slave-wcar*
+  [& body]
+  `(car/wcar {:pool {} :spec {:uri (env :redis-slave-port)}}
              ~@body))
 
 (def key-leaving-allowed?
@@ -12,85 +17,85 @@
 
 (defn get-leaving-allowed?
   [user]
-  (wcar* (car/get (str key-leaving-allowed? user))))
+  (slave-wcar* (car/get (str key-leaving-allowed? user))))
 
 (defn set-leaving-allowed?
   [user]
-  (wcar* (car/set (str key-leaving-allowed? user) "true")))
+  (master-wcar* (car/set (str key-leaving-allowed? user) "true")))
 
 (defn del-leaving-allowed?
   [user]
-  (wcar* (car/del (str key-leaving-allowed? user))))
+  (master-wcar* (car/del (str key-leaving-allowed? user))))
 
 (def key-checking-question?
   "is_checking_question/")
 
 (defn set-checking-question?
   [user question]
-  (wcar* (car/set (str key-checking-question? user) question)))
+  (master-wcar* (car/set (str key-checking-question? user) question)))
 
 (defn get-checking-question?
   [user]
-  (wcar* (car/get (str key-checking-question? user))))
+  (slave-wcar* (car/get (str key-checking-question? user))))
 
 (defn del-checking-question?
   [user]
-  (wcar* (car/del (str key-leaving-allowed? user))))
+  (master-wcar* (car/del (str key-leaving-allowed? user))))
 
 (def key-problem
   "problems")
 
 (defn set-problem
   [question answer]
-  (wcar* (car/hset key-problem question (str answer))))
+  (master-wcar* (car/hset key-problem question (str answer))))
 
 (defn get-problem
   [question]
-  (some-> (wcar* (car/hget key-problem question))
+  (some-> (slave-wcar* (car/hget key-problem question))
           read-string))
 
 (defn get-all-problem []
-  (wcar* (car/hgetall* key-problem)))
+  (slave-wcar* (car/hgetall* key-problem)))
 
 (defn del-problem
   [problem]
-  (wcar* (car/hdel key-problem problem)))
+  (master-wcar* (car/hdel key-problem problem)))
 
 (def key-self
   "self")
 
 (defn set-self
   [self]
-  (wcar* (car/set key-self self)))
+  (master-wcar* (car/set key-self self)))
 
 (defn get-self []
-  (wcar* (car/get key-self)))
+  (slave-wcar* (car/get key-self)))
 
 (def key-fyi
   "fyi/")
 
 (defn set-fyi
   [user title information]
-  (wcar* (car/hset (str key-fyi user) title information)))
+  (master-wcar* (car/hset (str key-fyi user) title information)))
 
 (defn del-fyi
   [user title]
-  (wcar* (car/hdel (str key-fyi user) title)))
+  (master-wcar* (car/hdel (str key-fyi user) title)))
 
 (defn get-all-fyi
   [user]
-  (wcar* (car/hgetall* (str key-fyi user))))
+  (slave-wcar* (car/hgetall* (str key-fyi user))))
 
 (def key-leaving-allowed-channels
   "leaving_allowed_channels")
 
 (defn add-leaving-allowed-channel
   [channel-id]
-  (wcar* (car/sadd key-leaving-allowed-channels channel-id)))
+  (master-wcar* (car/sadd key-leaving-allowed-channels channel-id)))
 
 (defn rm-leaving-allowed-channel
   [channel-id]
-  (wcar* (car/srem key-leaving-allowed-channels channel-id)))
+  (master-wcar* (car/srem key-leaving-allowed-channels channel-id)))
 
 (defn get-all-leaving-allowed-channels []
-  (wcar* (car/smembers key-leaving-allowed-channels)))
+  (slave-wcar* (car/smembers key-leaving-allowed-channels)))
