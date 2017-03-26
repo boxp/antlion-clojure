@@ -1,5 +1,7 @@
 # antlion-clojure
 
+[![CircleCI](https://circleci.com/gh/boxp/antlion-clojure.svg?style=svg)](https://circleci.com/gh/boxp/antlion-clojure)
+
 A Slack bot designed to play code escape game.
 
 ## Prerequirements
