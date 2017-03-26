@@ -17,7 +17,8 @@ A Slack bot designed to play code escape game.
 ```clj:.lein-env
 {:antlion-clojure-token "xoxb-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
  :antlion-clojure-invite-token "xoxp-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
- :redis-url "redis://127.0.0.1:6379"
+ :redis-master-port "tcp://127.0.0.1:6379"
+ :redis-slave-port "tcp://127.0.0.2:6379"
  :antlion-clojure-master-user-name "horai"}
 ```
 
