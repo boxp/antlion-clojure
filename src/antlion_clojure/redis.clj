@@ -13,7 +13,7 @@
   `(cs/wcar {:pool {}
 	     :spec {}
 	     :sentinel-group :redis-sentinel-service
-	     :master-name "redis-master"}
+	     :master-name "mymaster"}
             ~@body))
 
 (defmacro slave-wcar*
@@ -21,7 +21,7 @@
   `(cs/wcar {:pool {}
 	     :spec {}
 	     :sentinel-group :redis-sentinel-service
-	     :master-name "redis-master"
+	     :master-name "mymaster"
 	     :prefer-slave? true}
             ~@body))
 
