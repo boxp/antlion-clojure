@@ -1,16 +1,29 @@
 (ns antlion-clojure.redis
   (:require [environ.core :refer [env]]
+            [carmine-sentinel.core :as cs :refer [set-sentinel-groups!]]
             [taoensso.carmine :as car :refer [wcar]]))
+
+(set-sentinel-groups!
+  {:redis-sentinel-service
+   {:specs [{:host (env :redis-sentinel-service-host) :port (env :redis-sentinel-service-port)}]
+    :pool {}}})
 
 (defmacro master-wcar*
   [& body]
-  `(car/wcar {:pool {} :spec {:uri (env :redis-master-port)}}
-             ~@body))
+  `(cs/wcar {:pool {}
+	     :spec {}
+	     :sentinel-group :redis-sentinel-service
+	     :master-name "redis-master"}
+            ~@body))
 
 (defmacro slave-wcar*
   [& body]
-  `(car/wcar {:pool {} :spec {:uri (env :redis-slave-port)}}
-             ~@body))
+  `(cs/wcar {:pool {}
+	     :spec {}
+	     :sentinel-group :redis-sentinel-service
+	     :master-name "redis-master"
+	     :prefer-slave? true}
+            ~@body))
 
 (def key-leaving-allowed?
   "is_leaving_allowed/")
