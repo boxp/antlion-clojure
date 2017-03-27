@@ -9,4 +9,4 @@ kubectl apply -f k8s/redis/redis-master.yml
 kubectl apply -f k8s/redis/redis-sentinel-service.yml
 kubectl apply -f k8s/redis/redis-controller.yml
 kubectl apply -f k8s/redis/redis-sentinel-controller.yml
-kubectl apply -f k8s/deployment.yml
+kubectl apply -f k8s/controller.yml

@@ -3,8 +3,6 @@
             [carmine-sentinel.core :as cs :refer [set-sentinel-groups!]]
             [taoensso.carmine :as car :refer [wcar]]))
 
-(println {:host (env :redis-sentinel-service-host) :port (env :redis-sentinel-service-port)})
-
 (set-sentinel-groups!
   {:redis-sentinel-service
    {:specs [{:host (env :redis-sentinel-service-host) :port (env :redis-sentinel-service-port)}]
@@ -15,7 +13,7 @@
   `(cs/wcar {:pool {}
 	     :spec {}
 	     :sentinel-group :redis-sentinel-service
-	     :master-name "mymaster"}
+	     :master-name "master"}
             ~@body))
 
 (defmacro slave-wcar*
@@ -23,7 +21,7 @@
   `(cs/wcar {:pool {}
 	     :spec {}
 	     :sentinel-group :redis-sentinel-service
-	     :master-name "mymaster"
+	     :master-name "master"
 	     :prefer-slave? true}
             ~@body))
 
