@@ -1,0 +1,30 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: antlion-clojure
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: antlion-clojure
+    spec:
+      containers:
+      - name: antlion-clojure
+        image: asia.gcr.io/boxp-tk/antlion-clojure:latest
+        env:
+          - name: ANTLION_CLOJURE_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: antlion-clojure
+                key: token
+          - name: ANTLION_CLOJURE_INVITE_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: antlion-clojure
+                key: invite-token
+          - name: ANTLION_CLOJURE_MASTER_USER_NAME
+            valueFrom:
+              secretKeyRef:
+                name: antlion-clojure
+                key: master-user-name
