@@ -4,13 +4,13 @@
 
 (defmacro master-wcar*
   [& body]
-  `(cs/wcar {:pool {} :spec {:host (env :redis-master-host)
+  `(wcar {:pool {} :spec {:host (env :redis-master-host)
                              :port (env :redis-master-port)}}
             ~@body))
 
 (defmacro slave-wcar*
   [& body]
-  `(cs/wcar {:pool {} :spec {:host (or (env :redis-service-host) (env :redis-slave-host))
+  `(wcar {:pool {} :spec {:host (or (env :redis-service-host) (env :redis-slave-host))
                              :port (or (env :redis-service-port) (env :redis-slave-port))}}
             ~@body))
 

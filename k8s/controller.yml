@@ -28,3 +28,7 @@ spec:
               secretKeyRef:
                 name: antlion-clojure
                 key: master-user-name
+          - name: REDIS_MASTER_HOST
+            value: rd-0
+          - name: REDIS_MASTER_PORT
+            value: 6379
