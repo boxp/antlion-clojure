@@ -5,5 +5,5 @@ set -e
 
 sudo /opt/google-cloud-sdk/bin/gcloud docker -- push asia.gcr.io/${PROJECT_NAME}/antlion-clojure:latest
 sudo chown -R ubuntu:ubuntu /home/ubuntu/.kube
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/contrib/master/pets/redis/redis.yaml
+kubectl apply -f k8s/contrib/pets/redis/redis.yaml
 kubectl apply -f k8s/controller.yml
