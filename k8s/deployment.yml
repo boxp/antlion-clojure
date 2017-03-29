@@ -30,6 +30,6 @@ spec:
                 name: antlion-clojure
                 key: master-user-name
           - name: REDIS_MASTER_HOST
-            value: rd-0
+            value: rd-0.rd.default.svc.cluster.local
           - name: REDIS_MASTER_PORT
             value: "6379"
