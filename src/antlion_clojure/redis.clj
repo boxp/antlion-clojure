@@ -5,13 +5,13 @@
 (defmacro master-wcar*
   [& body]
   `(wcar {:pool {} :spec {:host (env :redis-master-host)
-                          :port (-> (env :redis-master-port) Integer.)}}
+                          :port (some-> (env :redis-master-port) Integer.)}}
             ~@body))
 
 (defmacro slave-wcar*
   [& body]
-  `(wcar {:pool {} :spec {:host (or (env :redis-service-host) (env :redis-slave-host))
-                          :port (-> (or (env :redis-service-port) (env :redis-slave-port)) Integer.)}}
+  `(wcar {:pool {} :spec {:host (env :redis-slave-host)
+                          :port (some-> (env :redis-slave-port) Integer.)}}
             ~@body))
 
 (def key-leaving-allowed?

@@ -33,3 +33,7 @@ spec:
             value: rd-0.redis.default.svc.cluster.local
           - name: REDIS_MASTER_PORT
             value: "6379"
+          - name: REDIS_SLAVE_HOST
+            value: redis
+          - name: REDIS_SLAVE_PORT
+            value: "6379"
