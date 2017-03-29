@@ -1,0 +1,16 @@
+version: "2"
+services:
+  antlion-clojure:
+    image: asia.gcr.io/boxp-tk/antlion-clojure
+    env_file: .env
+  redis-master1:
+    image: gcr.io/google_containers/redis:v1
+    environment:
+      NAME: MASTER
+      VALUE: "true"
+    volumes:
+      - .local/redis-master-data:/redis-master-data
+  redis-sentinel1:
+    image: kubernetes/redis:v1
+    environment:
+      SENTINEL: "true"
