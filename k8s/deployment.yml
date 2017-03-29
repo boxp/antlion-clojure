@@ -12,6 +12,7 @@ spec:
       containers:
       - name: antlion-clojure
         image: asia.gcr.io/boxp-tk/antlion-clojure:latest
+        imagePullPolicy: Always
         env:
           - name: ANTLION_CLOJURE_TOKEN
             valueFrom:
