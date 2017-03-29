@@ -12,7 +12,6 @@ spec:
       containers:
       - name: antlion-clojure
         image: asia.gcr.io/boxp-tk/antlion-clojure:${CIRCLE_SHA1}
-        imagePullPolicy: Always
         env:
           - name: ANTLION_CLOJURE_TOKEN
             valueFrom:
