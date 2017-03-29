@@ -31,4 +31,4 @@ spec:
           - name: REDIS_MASTER_HOST
             value: rd-0
           - name: REDIS_MASTER_PORT
-            value: 6379
+            value: "6379"
