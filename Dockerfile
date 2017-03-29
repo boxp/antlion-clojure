@@ -5,4 +5,4 @@ COPY project.clj /usr/src/app/
 RUN lein deps
 COPY . /usr/src/app
 RUN mv "$(lein uberjar | sed -n 's/^Created \(.*standalone\.jar\)/\1/p')" app-standalone.jar
-CMD ["java", "-jar", "app-standalone.jar"]
+CMD ["java", "-Djava.security.policy=/usr/src/app/java.policy", "-jar", "app-standalone.jar"]
