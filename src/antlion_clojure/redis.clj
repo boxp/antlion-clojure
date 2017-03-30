@@ -6,13 +6,13 @@
   [& body]
   `(wcar {:pool {} :spec {:host (env :redis-master-host)
                           :port (some-> (env :redis-master-port) Integer.)}}
-            ~@body))
+         ~@body))
 
 (defmacro slave-wcar*
   [& body]
   `(wcar {:pool {} :spec {:host (env :redis-slave-host)
                           :port (some-> (env :redis-slave-port) Integer.)}}
-            ~@body))
+         ~@body))
 
 (def key-leaving-allowed?
   "is_leaving_allowed/")
