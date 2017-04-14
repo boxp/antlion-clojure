@@ -248,6 +248,50 @@
                                   (:name c) ": " (.getMessage e)
                                   "```")})))))
 
+(defn- add-reviewer
+  [slack
+   {:keys [user channel] :as res}
+   u]
+   (if (from-master? slack res)
+     (do
+       (some-> user redis/add-reviewer)
+       (map->Payload {:type :message
+                      :user user
+                      :channel channel
+                      :text (str "ﾄｳﾛｸｼﾀﾖ!\n"
+                                 "```\n"
+                                 u
+                                 "```")}))
+     (map->Payload {:type :message
+                     :user user
+                     :channel channel
+                     :text "ｹﾝｹﾞﾝｶﾞﾅｲｰﾖ!"})))
+
+(defn- rm-reviewer
+  [slack
+   {:keys [user channel] :as res}
+   u]
+   (if (from-master? slack res)
+     (do
+       (some-> user redis/rm-reviewer)
+       (map->Payload {:type :message
+                      :user user
+                      :channel channel
+                      :text (str "ｹｼﾀﾖ!\n"
+                                 "```\n"
+                                 u
+                                 "```")}))
+      (map->Payload {:type :message
+                     :user user
+                     :channel channel
+                     :text "ｹﾝｹﾞﾝｶﾞﾅｲｰﾖ!"})))
+
+(defn- review
+  [slack
+   {:keys [user channel] :as res}
+   pr]
+  (let [reviewer (some-> (redis/get-all-reviewers) seq rand-nth)]))
+
 (defn- help
   [{:keys [user channel] :as res} me]
   (map->Payload {:type :message
@@ -265,6 +309,8 @@
                       "------------------ 管理者限定機能 ------------------\n"
                       me " add-allowed-channel <channel> : <channel>を監視対象から外す\n"
                       me " rm-allowed-channel <channel>  : <channel>を監視対象に戻す\n"
+                      me " add-reviewer <user>           : <user>をレビュワーに登録する\n"
+                      me " rm-reviewer <user>            : <user>をレビュワーから外す\n"
                       "```")}))
 
 (defn- channel-leave-handler
@@ -299,6 +345,8 @@
       "del-fyi" (del-fyi res (first args))
       "add-allowed-channel" (add-allowed-channel slack res (first args))
       "rm-allowed-channel" (rm-allowed-channel slack res (first args))
+      "add-reviewer" (add-reviewer slack res (first args))
+      "rm-reviewer" (rm-reviewer slack res (first args))
       ("fyi" "FYI") (get-all-fyi res (first args))
       (map->Payload {:type :message
                      :user user

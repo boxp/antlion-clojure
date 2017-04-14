@@ -101,3 +101,17 @@
 
 (defn get-all-leaving-allowed-channels []
   (slave-wcar* (car/smembers key-leaving-allowed-channels)))
+
+(def key-reviewers
+  "reviewers")
+
+(defn add-reviewer
+  [user]
+  (master-wcar* (car/sadd key-reviewers user)))
+
+(defn rm-reviewer
+  [user]
+  (master-wcar* (car/srem key-reviewers user)))
+
+(defn get-all-reviewers []
+  (slave-wcar* (car/smembers key-reviewers)))
