@@ -25,6 +25,13 @@
           (update 0 #(->> % (drop 1) (apply str)))
           (#(apply ->Channel %))))
 
+(defn parse-user
+  [s]
+  (some->> (re-matches #"\<(.*)\>" s)
+           second
+           (drop 1)
+           (apply str)))
+
 (defn message-for-me?
   [res self]
   (re-matches (re-pattern (str "\\<\\@" self "\\> .*"))
