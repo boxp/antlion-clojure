@@ -254,7 +254,7 @@
    u]
    (if (from-master? slack res)
      (do
-       (some-> user redis/add-reviewer)
+       (some-> u slack/parse-user redis/add-reviewer)
        (map->Payload {:type :message
                       :user user
                       :channel channel
@@ -273,7 +273,7 @@
    u]
    (if (from-master? slack res)
      (do
-       (some-> user redis/rm-reviewer)
+       (some-> u slack/parse-user redis/rm-reviewer)
        (map->Payload {:type :message
                       :user user
                       :channel channel
@@ -287,10 +287,23 @@
                      :text "ｹﾝｹﾞﾝｶﾞﾅｲｰﾖ!"})))
 
 (defn- review
-  [slack
-   {:keys [user channel] :as res}
+  [{:keys [user channel] :as res}
    pr]
-  (let [reviewer (some-> (redis/get-all-reviewers) seq rand-nth)]))
+  (let [reviewer (some-> (redis/get-all-reviewers) seq rand-nth)]
+    (cond (not reviewer) (map->Payload {:type :message
+                                        :user user
+                                        :channel channel
+                                        :text (str "ﾚﾋﾞｭﾜｰｶﾞｲﾅｲﾖ!")})
+
+          (not pr) (map->Payload {:type :message
+                                  :user user
+                                  :channel channel
+                                  :text (str "prﾁｮｳﾀﾞｲ!")})
+          :else (map->Payload {:type :message
+                               :user reviewer
+                               :channel channel
+                               :text (str "っ＝[レビューをお願いします]\n"
+                                          pr)}))))
 
 (defn- help
   [{:keys [user channel] :as res} me]
@@ -305,6 +318,7 @@
                       me " fyi                           : メモ一覧を表示\n"
                       me " set-fyi <title> <body>        : <title> <body>をメモ\n"
                       me " del-fyi <title>               : <title>を削除\n"
+                      me " review <pr>                   : <pr>を誰かに割り振る\n"
                       me " <S-Expression>                : <S-Expression>を評価\n"
                       "------------------ 管理者限定機能 ------------------\n"
                       me " add-allowed-channel <channel> : <channel>を監視対象から外す\n"
@@ -343,6 +357,7 @@
       "del-problem" (del-problem slack res (first args))
       "set-fyi" (set-fyi res (first args) (second args))
       "del-fyi" (del-fyi res (first args))
+      "review" (review res (first args))
       "add-allowed-channel" (add-allowed-channel slack res (first args))
       "rm-allowed-channel" (rm-allowed-channel slack res (first args))
       "add-reviewer" (add-reviewer slack res (first args))
