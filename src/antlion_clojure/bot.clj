@@ -44,7 +44,7 @@
         question (redis/get-checking-question? user)
         answer (redis/get-problem question)]
     (if (= (:result parse-result) answer)
-      (do (redis/del-checking-question? user)
+      (do (redis/rm-checking-question? user)
           (redis/set-leaving-allowed? user)
           (map->Payload {:type :message
                          :user user
@@ -82,7 +82,7 @@
                                 (.getMessage e)
                                 "```")}))))
 
-(defn del-problem
+(defn rm-problem
   [{:keys [master-user-name] :as slack}
    {:keys [user user_profile channel] :as res}
    question]
@@ -92,7 +92,7 @@
                    :user user
                    :channel channel
                    :text "ｹﾝｹﾞﾝｶﾞﾅｲｰﾖ!"})
-    (zero? (redis/del-problem question))
+    (zero? (redis/rm-problem question))
     (map->Payload {:type :message
                    :user user
                    :channel channel
@@ -124,10 +124,10 @@
                                 title ": " (.getMessage e)
                                 "```")}))))
 
-(defn- del-fyi
+(defn- rm-fyi
   [{:keys [user user_profile channel] :as res} title]
   (try
-    (let [res (redis/del-fyi user title)]
+    (let [res (redis/rm-fyi user title)]
       (if (zero? res)
         (map->Payload {:type :message
                        :user user
@@ -317,7 +317,7 @@
                       me " help                          : この文章を表示\n"
                       me " fyi                           : メモ一覧を表示\n"
                       me " set-fyi <title> <body>        : <title> <body>をメモ\n"
-                      me " del-fyi <title>               : <title>を削除\n"
+                      me " rm-fyi <title>               : <title>を削除\n"
                       me " review <pr>                   : <pr>を誰かに割り振る\n"
                       me " <S-Expression>                : <S-Expression>を評価\n"
                       "------------------ 管理者限定機能 ------------------\n"
@@ -354,9 +354,9 @@
     (case command
       "help" (help res me)
       "set-problem" (set-problem slack res (first args) (second args))
-      "del-problem" (del-problem slack res (first args))
+      "rm-problem" (rm-problem slack res (first args))
       "set-fyi" (set-fyi res (first args) (second args))
-      "del-fyi" (del-fyi res (first args))
+      "rm-fyi" (rm-fyi res (first args))
       "review" (review res (first args))
       "add-allowed-channel" (add-allowed-channel slack res (first args))
       "rm-allowed-channel" (rm-allowed-channel slack res (first args))

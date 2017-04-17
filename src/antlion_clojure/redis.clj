@@ -25,7 +25,7 @@
   [user]
   (master-wcar* (car/set (str key-leaving-allowed? user) "true")))
 
-(defn del-leaving-allowed?
+(defn rm-leaving-allowed?
   [user]
   (master-wcar* (car/del (str key-leaving-allowed? user))))
 
@@ -40,7 +40,7 @@
   [user]
   (slave-wcar* (car/get (str key-checking-question? user))))
 
-(defn del-checking-question?
+(defn rm-checking-question?
   [user]
   (master-wcar* (car/del (str key-leaving-allowed? user))))
 
@@ -59,7 +59,7 @@
 (defn get-all-problem []
   (slave-wcar* (car/hgetall* key-problem)))
 
-(defn del-problem
+(defn rm-problem
   [problem]
   (master-wcar* (car/hdel key-problem problem)))
 
@@ -80,7 +80,7 @@
   [user title information]
   (master-wcar* (car/hset (str key-fyi user) title information)))
 
-(defn del-fyi
+(defn rm-fyi
   [user title]
   (master-wcar* (car/hdel (str key-fyi user) title)))
 
