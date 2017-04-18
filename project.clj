@@ -12,6 +12,7 @@
                  [com.taoensso/carmine "2.15.0"]
                  [environ "1.1.0"]
                  [http-kit "2.2.0"]
+                 [tentacles "0.5.1"]
                  [com.stuartsierra/component "0.3.2"]]
   :profiles
   {:dev {:source-paths ["src" "dev"]}

@@ -19,7 +19,7 @@
 
 (defn parse-channel
   [s]
-  (some-> (re-matches #"\<(.*)\>" s)
+  (some-> (re-matches #"\<(@.*)\>" s)
           second
           (clojure.string/split #"\|")
           (update 0 #(->> % (drop 1) (apply str)))
@@ -27,7 +27,7 @@
 
 (defn parse-user
   [s]
-  (some->> (re-matches #"\<(.*)\>" s)
+  (some->> (re-matches #"\<(@.*)\>" s)
            second
            (drop 1)
            (apply str)))
