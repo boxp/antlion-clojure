@@ -34,8 +34,9 @@
 
 (defn message-for-me?
   [res self]
-  (re-matches (re-pattern (str "\\<\\@" self "\\> .*"))
-              (:text res)))
+  (when (:text res)
+    (re-matches (re-pattern (str "\\<\\@" self "\\> .*"))
+                (:text res))))
 
 (defn post
   [{:keys [connection]} {:keys [channel text]}]
