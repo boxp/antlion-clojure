@@ -3,6 +3,7 @@
             [antlion-clojure.sandbox :refer [parse-form format-result]]
             [environ.core :refer [env]]
             [antlion-clojure.slack :as slack :refer [map->Payload parse-channel]]
+            [antlion-clojure.github :as github]
             [slack-rtm.core :as rtm]
             [clojure.string :refer [split]]
             [com.stuartsierra.component :as component])
@@ -251,16 +252,18 @@
 (defn- add-reviewer
   [slack
    {:keys [user channel] :as res}
-   u]
+   slack-user
+   github-user]
    (if (from-master? slack res)
      (do
-       (some-> u slack/parse-user redis/add-reviewer)
+       (some-> slack-user slack/parse-user (redis/add-reviewer github-user))
        (map->Payload {:type :message
                       :user user
                       :channel channel
                       :text (str "ﾄｳﾛｸｼﾀﾖ!\n"
                                  "```\n"
-                                 u
+                                 "slack: " slack-user "\n"
+                                 "github " github-user "\n"
                                  "```")}))
      (map->Payload {:type :message
                      :user user
@@ -289,7 +292,9 @@
 (defn- review
   [{:keys [user channel] :as res}
    pr]
-  (let [reviewer (some-> (redis/get-all-reviewers) seq rand-nth)]
+  (let [reviewer (some-> (redis/get-all-reviewers) seq rand-nth)
+        reviewer-slack (first reviewer)
+        reviewer-github (second reviewer)]
     (cond (not reviewer) (map->Payload {:type :message
                                         :user user
                                         :channel channel
@@ -299,11 +304,14 @@
                                   :user user
                                   :channel channel
                                   :text (str "prﾁｮｳﾀﾞｲ!")})
-          :else (map->Payload {:type :message
-                               :user reviewer
-                               :channel channel
-                               :text (str "っ＝[レビューをお願いします]\n"
-                                          pr)}))))
+          :else
+          (do
+            (github/add-reviewer pr reviewer-github)
+            (map->Payload {:type :message
+                           :user reviewer-slack
+                           :channel channel
+                           :text (str "っ＝[レビューをお願いします]\n"
+                                      pr)})))))
 
 (defn- help
   [{:keys [user channel] :as res} me]
@@ -314,17 +322,17 @@
                  (str
                      "ﾂｶｲｶﾀ\n"
                      "```"
-                      me " help                          : この文章を表示\n"
-                      me " fyi                           : メモ一覧を表示\n"
-                      me " set-fyi <title> <body>        : <title> <body>をメモ\n"
-                      me " rm-fyi <title>               : <title>を削除\n"
-                      me " review <pr>                   : <pr>を誰かに割り振る\n"
-                      me " <S-Expression>                : <S-Expression>を評価\n"
+                      me " help                                    : この文章を表示\n"
+                      me " fyi                                     : メモ一覧を表示\n"
+                      me " set-fyi <title> <body>                  : <title> <body>をメモ\n"
+                      me " rm-fyi <title>                          : <title>を削除\n"
+                      me " review <pr>                             : <pr>を誰かに割り振る\n"
+                      me " <S-Expression>                          : <S-Expression>を評価\n"
                       "------------------ 管理者限定機能 ------------------\n"
-                      me " add-allowed-channel <channel> : <channel>を監視対象から外す\n"
-                      me " rm-allowed-channel <channel>  : <channel>を監視対象に戻す\n"
-                      me " add-reviewer <user>           : <user>をレビュワーに登録する\n"
-                      me " rm-reviewer <user>            : <user>をレビュワーから外す\n"
+                      me " add-allowed-channel <channel>           : <channel>を監視対象から外す\n"
+                      me " rm-allowed-channel <channel>            : <channel>を監視対象に戻す\n"
+                      me " add-reviewer <slack-user> <github-user> : <slack-user>をレビュワーに登録する\n"
+                      me " rm-reviewer <slack-user>                : <slack-user>をレビュワーから外す\n"
                       "```")}))
 
 (defn- channel-leave-handler
@@ -360,7 +368,7 @@
       "review" (review res (first args))
       "add-allowed-channel" (add-allowed-channel slack res (first args))
       "rm-allowed-channel" (rm-allowed-channel slack res (first args))
-      "add-reviewer" (add-reviewer slack res (first args))
+      "add-reviewer" (add-reviewer slack res (first args) (second args))
       "rm-reviewer" (rm-reviewer slack res (first args))
       ("fyi" "FYI") (get-all-fyi res (first args))
       (map->Payload {:type :message

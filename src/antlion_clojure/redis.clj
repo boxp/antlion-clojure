@@ -106,12 +106,12 @@
   "reviewers")
 
 (defn add-reviewer
-  [user]
-  (master-wcar* (car/sadd key-reviewers user)))
+  [slack-user github-user]
+  (master-wcar* (car/hset key-reviewers slack-user github-user)))
 
 (defn rm-reviewer
-  [user]
-  (master-wcar* (car/srem key-reviewers user)))
+  [slack-user]
+  (master-wcar* (car/hdel key-reviewers slack-user)))
 
 (defn get-all-reviewers []
-  (slave-wcar* (car/smembers key-reviewers)))
+  (slave-wcar* (car/hgetall* key-reviewers)))

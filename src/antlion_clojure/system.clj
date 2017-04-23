@@ -21,6 +21,7 @@
 (defn load-config []
   {:antlion-clojure-token (env :antlion-clojure-token)
    :antlion-clojure-invite-token (env :antlion-clojure-invite-token)
+   :antlion-clojure-github-oauth-token (env :antlion-clojure-github-oauth-token)
    :master-user-name (env :antlion-clojure-master-user-name)
    :port (or (env :port) 3000)})
 

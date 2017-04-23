@@ -28,6 +28,11 @@ spec:
               secretKeyRef:
                 name: antlion-clojure
                 key: master-user-name
+          - name: ANTLION_CLOJURE_GITHUB_OAUTH_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: antlion-clojure
+                key: github-oauth-token
           - name: REDIS_MASTER_HOST
             value: rd-0.redis.default.svc.cluster.local
           - name: REDIS_MASTER_PORT
