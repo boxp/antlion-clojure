@@ -1,6 +1,7 @@
 (ns antlion-clojure.slack
   (:require [gniazdo.core :as ws]
             [clojure.core.async :refer [go-loop <! put!]]
+            [clj-slack.usergroups.users :as usergroups-users]
             [clj-slack.chat :as chat]
             [clj-slack.channels :as channels]
             [clj-slack.groups :as groups]
@@ -31,6 +32,12 @@
            (drop 1)
            (apply str)))
 
+(defn parse-usergroups
+  [s]
+  (some->> s
+           (re-matches #"\<\!subteam\^(.*)\|.*\>")
+           second))
+
 (defn message-for-me?
   [{:keys [slack res] :as opt}]
   (when (:text res)
@@ -58,6 +65,13 @@
   (-> connection
       (assoc :token invite-token)
       (groups/invite channel user)))
+
+(defn usergroups-users
+  [{:keys [connection invite-token]} usergroups-id]
+  (-> connection
+      (assoc :token invite-token)
+      (usergroups-users/list usergroups-id)
+      :users))
 
 (defn- dispatch-message!
   [slack {:keys [subtype user] :as payload}]

@@ -6,6 +6,7 @@
             [antlion-clojure.github :as github]
             [slack-rtm.core :as rtm]
             [clojure.string :refer [split]]
+            [clojure.set :refer [intersection]]
             [com.stuartsierra.component :as component])
   (:use org.httpkit.server)
   (:gen-class))
@@ -284,10 +285,26 @@
                      :channel channel
                      :text "ｹﾝｹﾞﾝｶﾞﾅｲｰﾖ!"}))))
 
+(defn- get-reviewer
+  [{:keys [slack dynamodb res] :as opt} usergroups-str]
+  (let [usergroups-users (some->> usergroups-str
+                                  slack/parse-usergroups
+                                  (slack/usergroups-users slack))
+        reviewers (dynamodb/get-all-reviewers dynamodb)]
+    (if (seq usergroups-users)
+      (some->> reviewers
+               (filter #((set usergroups-users) (:id %)))
+               seq
+               rand-nth)
+      (some->> reviewers
+               seq
+               rand-nth))))
+
+
 (defn- review
-  [{:keys [slack dynamodb res] :as opt} pr]
+  [{:keys [slack dynamodb res] :as opt} pr usergroups-str]
   (let [{:keys [user channel]} res
-        reviewer (some->> (dynamodb/get-all-reviewers dynamodb) seq rand-nth)
+        reviewer (get-reviewer opt usergroups-str)
         {:keys [id github-id]} reviewer]
     (cond (not reviewer) (map->Payload {:type :message
                                         :user user
@@ -320,7 +337,7 @@
                       me " fyi                                     : メモ一覧を表示\n"
                       me " set-fyi <title> <body>                  : <title> <body>をメモ\n"
                       me " rm-fyi <title>                          : <title>を削除\n"
-                      me " review <pr>                             : <pr>を誰かに割り振る\n"
+                      me " review <pr> <usergroup?>                : <pr>を誰かに割り振る(<usergroup?>に絞る事が出来る)\n"
                       me " <S-Expression>                          : <S-Expression>を評価\n"
                       "------------------ 管理者限定機能 ------------------\n"
                       me " add-allowed-channel <channel>           : <channel>を監視対象から外す\n"
@@ -363,7 +380,7 @@
       "set-fyi" (set-fyi opt (first args) (second args))
       "rm-fyi" (rm-fyi opt (first args))
       ("fyi" "FYI") (get-all-fyi opt (first args))
-      "review" (review opt (first args))
+      "review" (review opt (first args) (second args))
       "add-allowed-channel" (add-allowed-channel opt (first args))
       "rm-allowed-channel" (rm-allowed-channel opt (first args))
       "add-reviewer" (add-reviewer opt (first args) (second args))
