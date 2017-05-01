@@ -1,3 +1,0 @@
-[submodule "k8s/contrib"]
-	path = k8s/contrib
-	url = git@github.com:boxp/contrib.git

@@ -10,7 +10,6 @@
 
   dependencies:
     override:
-      - git submodule update --init --recursive
       - sudo /opt/google-cloud-sdk/bin/gcloud --quiet components update --version 149.0.0
       - sudo /opt/google-cloud-sdk/bin/gcloud --quiet components update kubectl --version 149.0.0
       - echo $ACCT_AUTH | base64 --decode -i > ${HOME}/account-auth.json
