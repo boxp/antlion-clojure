@@ -33,6 +33,21 @@ spec:
               secretKeyRef:
                 name: antlion-clojure
                 key: github-oauth-token
+          - name: ANTLION_CLOJURE_AWS_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: antlion-clojure
+                key: aws-access-key
+          - name: ANTLION_CLOJURE_AWS_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: antlion-clojure
+                key: aws-secret-key
+          - name: ANTLION_CLOJURE_DYNAMODB_ENDPOINT
+            valueFrom:
+              secretKeyRef:
+                name: antlion-clojure
+                key: dynamodb-endpoint
           - name: REDIS_MASTER_HOST
             value: rd-0.redis.default.svc.cluster.local
           - name: REDIS_MASTER_PORT

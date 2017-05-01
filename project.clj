@@ -13,7 +13,8 @@
                  [environ "1.1.0"]
                  [http-kit "2.2.0"]
                  [tentacles "0.5.1"]
-                 [com.stuartsierra/component "0.3.2"]]
+                 [com.stuartsierra/component "0.3.2"]
+                 [com.taoensso/faraday "1.8.0"]]
   :profiles
   {:dev {:source-paths ["src" "dev"]}
    :uberjar {:main antlion-clojure.system}})
