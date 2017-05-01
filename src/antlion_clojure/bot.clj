@@ -1,5 +1,5 @@
 (ns antlion-clojure.bot
-  (:require [antlion-clojure.redis :as redis]
+  (:require [antlion-clojure.dynamodb :as dynamodb]
             [antlion-clojure.sandbox :refer [parse-form format-result]]
             [environ.core :refer [env]]
             [antlion-clojure.slack :as slack :refer [map->Payload parse-channel]]
@@ -11,16 +11,17 @@
   (:gen-class))
 
 (defn from-master?
-  [{:keys [master-user-name] :as slack} res]
-  (= master-user-name (get-in res [:user_profile :name])))
+  [{:keys [slack dynamodb res] :as opt}]
+  (let [{:keys [master-user-name]} slack]
+    (= master-user-name (get-in res [:user_profile :name]))))
 
 (defn question
-  [{:keys [user channel subtype]
-    :as res}]
-  (let [problems (redis/get-all-problem)
-        [question answer] (when (not-empty problems) (rand-nth (vec problems)))]
+  [{:keys [slack dynamodb res] :as opt}]
+  (let [{:keys [user channel subtype]} res
+        problems (dynamodb/get-all-problem dynamodb)
+        {:keys [question answer]} (when (not-empty problems) (rand-nth (vec problems)))]
     (if question
-      (do (redis/set-checking-question? user question)
+      (do (dynamodb/set-checking-question? user question)
           [(map->Payload {:type :message
                           :user user
                           :channel channel
@@ -39,14 +40,14 @@
                      :text "ｳﾝｶﾞﾖｶｯﾀﾅ...MPｶﾞﾀﾘﾅｶｯﾀ"}))))
 
 (defn check-question
-  [{:keys [user channel]
-    :as res}]
-  (let [parse-result (parse-form (-> res :text (split #" " 2) second))
-        question (redis/get-checking-question? user)
-        answer (redis/get-problem question)]
+  [{:keys [slack dynamodb res] :as opt}]
+  (let [{:keys [user channel]} res
+        parse-result (parse-form (-> res :text (split #" " 2) second))
+        question (dynamodb/get-checking-question? dynamodb user)
+        answer (dynamodb/get-problem dynamodb question)]
     (if (= (:result parse-result) answer)
-      (do (redis/rm-checking-question? user)
-          (redis/set-leaving-allowed? user)
+      (do (dynamodb/rm-checking-question? dynamodb user)
+          (dynamodb/set-leaving-allowed? dynamodb user)
           (map->Payload {:type :message
                          :user user
                          :channel channel
@@ -61,103 +62,96 @@
                                 (format-result parse-result))}))))
 
 (defn- set-problem
-  [{:keys [master-user-name] :as slack}
-   {:keys [user channel] :as res}
+  [{:keys [slack dynamodb res] :as opt}
    question answer]
-  (try
-    (do
-      (redis/set-problem question (read-string answer))
-      (map->Payload {:type :message
-                     :user user
-                     :channel channel
-                     :text (str "ﾄｳﾛｸｼﾀﾖ!\n"
-                                "```\n"
-                                answer
-                                "```")}))
-    (catch Exception e
-      (map->Payload {:type :message
-                     :user user
-                     :channel channel
-                     :text (str "ｺﾀｴｶﾞｵｶｼｲｰﾈ!\n"
-                                "```\n"
-                                (.getMessage e)
-                                "```")}))))
-
-(defn rm-problem
-  [{:keys [master-user-name] :as slack}
-   {:keys [user user_profile channel] :as res}
-   question]
-  (cond
-    (not (from-master? slack res))
-    (map->Payload {:type :message
-                   :user user
-                   :channel channel
-                   :text "ｹﾝｹﾞﾝｶﾞﾅｲｰﾖ!"})
-    (zero? (redis/rm-problem question))
-    (map->Payload {:type :message
-                   :user user
-                   :channel channel
-                   :text "ﾐﾂｶﾗﾅｲﾖ!"})
-    :else
-    (map->Payload {:type :message
-                   :user user
-                   :channel channel
-                   :text "ｹｼﾀﾖ!"})))
-
-(defn- set-fyi
-  [{:keys [user user_profile channel] :as res} title information]
-  (try
-    (do
-      (redis/set-fyi user title information)
-      (map->Payload {:type :message
-                     :user user
-                     :channel channel
-                     :text (str "ﾄｳﾛｸｼﾀﾖ!\n"
-                                "```\n"
-                                title ": " information
-                                "```")}))
-    (catch Exception e
-      (map->Payload {:type :message
-                     :user user
-                     :channel channel
-                     :text (str "ﾊﾞｶｼﾞｬﾈｰﾉ\n"
-                                "```\n"
-                                title ": " (.getMessage e)
-                                "```")}))))
-
-(defn- rm-fyi
-  [{:keys [user user_profile channel] :as res} title]
-  (try
-    (let [res (redis/rm-fyi user title)]
-      (if (zero? res)
+  (let [{:keys [master-user-name]} slack
+        {:keys [user channel]} res]
+    (try
+      (do
+        (dynamodb/set-problem dynamodb question answer)
         (map->Payload {:type :message
                        :user user
                        :channel channel
-                       :text (str "ﾐﾂｶﾗﾅｲ−ﾖ!\n"
+                       :text (str "ﾄｳﾛｸｼﾀﾖ!\n"
                                   "```\n"
-                                  title
-                                  "```")})
+                                  answer
+                                  "```")}))
+      (catch Exception e
+        (map->Payload {:type :message
+                       :user user
+                       :channel channel
+                       :text (str "ｺﾀｴｶﾞｵｶｼｲｰﾈ!\n"
+                                  "```\n"
+                                  (.getMessage e)
+                                  "```")})))))
+
+(defn rm-problem
+  [{:keys [slack dynamodb res] :as opt}
+   question]
+  (let [{:keys [master-user-name]} slack
+        {:keys [user user_profile channel]} res]
+    (dynamodb/rm-problem dynamodb question)
+    (cond
+      (not (from-master? opt))
+      (map->Payload {:type :message
+                     :user user
+                     :channel channel
+                     :text "ｹﾝｹﾞﾝｶﾞﾅｲｰﾖ!"})
+      :else
+      (map->Payload {:type :message
+                     :user user
+                     :channel channel
+                     :text "ｹｼﾀﾖ!"}))))
+
+(defn- set-fyi
+  [{:keys [slack dynamodb res] :as opt}
+   title information]
+  (let [{:keys [user user_profile channel]} res]
+    (try
+      (do
+        (dynamodb/set-fyi dynamodb user title information)
+        (map->Payload {:type :message
+                       :user user
+                       :channel channel
+                       :text (str "ﾄｳﾛｸｼﾀﾖ!\n"
+                                  "```\n"
+                                  title ": " information
+                                  "```")}))
+      (catch Exception e
+        (map->Payload {:type :message
+                       :user user
+                       :channel channel
+                       :text (str "ﾊﾞｶｼﾞｬﾈｰﾉ\n"
+                                  "```\n"
+                                  title ": " (.getMessage e)
+                                  "```")})))))
+
+(defn- rm-fyi
+  [{:keys [slack dynamodb res] :as opt} title]
+  (let [{:keys [user user_profile channel]} res]
+    (try
+      (let [res (dynamodb/rm-fyi dynamodb user title)]
         (map->Payload {:type :message
                        :user user
                        :channel channel
                        :text (str "ｹｼﾀﾖ!\n"
                                   "```\n"
                                   title
-                                  "```")})))
-    (catch Exception e
-      (map->Payload {:type :message
-                     :user user
-                     :channel channel
-                     :text (str "ﾊﾞｶｼﾞｬﾈｰﾉ\n"
-                                "```\n"
-                                title ": " (.getMessage e)
-                                "```")}))))
+                                  "```")}))
+      (catch Exception e
+        (map->Payload {:type :message
+                       :user user
+                       :channel channel
+                       :text (str "ﾊﾞｶｼﾞｬﾈｰﾉ\n"
+                                  "```\n"
+                                  title ": " (.getMessage e)
+                                  "```")})))))
 
 (defn- format-fyi
   [fyis]
   (str "```\n"
        (->>
-         (map (fn [[title information]]
+         (map (fn [{:keys [title information]}]
                 (str title ": " information))
               fyis)
          (clojure.string/join "\n"))
@@ -165,44 +159,47 @@
        "```"))
 
 (defn- get-all-fyi
-  [{:keys [user user_profile channel] :as res} title]
-  (try
-    (let [res (redis/get-all-fyi user)]
-      (if (seq res)
+  [{:keys [slack dynamodb res] :as opt} title]
+  (let [{:keys [user user_profile channel]} res]
+    (try
+      (let [res (dynamodb/get-all-fyi dynamodb user)]
+        (if (seq res)
+          (map->Payload {:type :message
+                         :user user
+                         :channel channel
+                         :text (format-fyi res)})
+          (map->Payload {:type :message
+                         :user user
+                         :channel channel
+                         :text "ﾊﾞｶｼﾞｬﾈｰﾉ"})))
+      (catch Exception e
         (map->Payload {:type :message
                        :user user
                        :channel channel
-                       :text (format-fyi res)})
-        (map->Payload {:type :message
-                       :user user
-                       :channel channel
-                       :text "ﾊﾞｶｼﾞｬﾈｰﾉ"})))
-    (catch Exception e
-      (map->Payload {:type :message
-                     :user user
-                     :channel channel
-                     :text (str "ﾊﾞｶｼﾞｬﾈｰﾉ\n"
-                                "```\n"
-                                title ": " (.getMessage e)
-                                "```")}))))
+                       :text (str "ﾊﾞｶｼﾞｬﾈｰﾉ\n"
+                                  "```\n"
+                                  title ": " (.getMessage e)
+                                  "```")})))))
 
 (defn- eval
-  [{:keys [user channel] :as res} txt]
-  (let [parse-result (parse-form txt)]
+  [{:keys [slack dynamodb res] :as opt} txt]
+  (let [{:keys [user channel]} res
+        parse-result (parse-form txt)]
     (map->Payload {:type :message
                    :user user
                    :channel channel
                    :text (format-result parse-result)})))
 
 (defn- add-allowed-channel
-  [slack
-   {:keys [user channel] :as res}
+  [{:keys [slack dynamodb res] :as opt}
    chan-str]
-  (let [c (parse-channel chan-str)]
+  (let [{:keys [user channel]} res
+        c (parse-channel chan-str)]
+    (println chan-str)
     (try
-      (if (from-master? slack res)
+      (if (from-master? opt)
         (do
-          (some-> c :id redis/add-leaving-allowed-channel)
+          (some->> c :id (dynamodb/add-leaving-allowed-channel dynamodb))
           (map->Payload {:type :message
                          :user user
                          :channel channel
@@ -224,14 +221,13 @@
                                   "```")})))))
 
 (defn- rm-allowed-channel
-  [slack
-   {:keys [user channel] :as res}
-   chan-str]
-  (let [c (parse-channel chan-str)]
+  [{:keys [slack dynamodb res] :as opt} chan-str]
+  (let [{:keys [user channel]} res
+        c (parse-channel chan-str)]
     (try
-      (if (from-master? slack res)
+      (if (from-master? opt)
         (do
-          (-> c :id redis/rm-leaving-allowed-channel)
+          (some->> c :id (dynamodb/rm-leaving-allowed-channel dynamodb))
           (map->Payload {:type :message
                          :user user
                          :channel channel
@@ -250,51 +246,49 @@
                                   "```")})))))
 
 (defn- add-reviewer
-  [slack
-   {:keys [user channel] :as res}
+  [{:keys [slack dynamodb res] :as opt}
    slack-user
    github-user]
-   (if (from-master? slack res)
-     (do
-       (some-> slack-user slack/parse-user (redis/add-reviewer github-user))
-       (map->Payload {:type :message
-                      :user user
-                      :channel channel
-                      :text (str "ﾄｳﾛｸｼﾀﾖ!\n"
-                                 "```\n"
-                                 "slack: " slack-user "\n"
-                                 "github " github-user "\n"
-                                 "```")}))
-     (map->Payload {:type :message
-                     :user user
-                     :channel channel
-                     :text "ｹﾝｹﾞﾝｶﾞﾅｲｰﾖ!"})))
-
-(defn- rm-reviewer
-  [slack
-   {:keys [user channel] :as res}
-   u]
-   (if (from-master? slack res)
-     (do
-       (some-> u slack/parse-user redis/rm-reviewer)
-       (map->Payload {:type :message
-                      :user user
-                      :channel channel
-                      :text (str "ｹｼﾀﾖ!\n"
-                                 "```\n"
-                                 u
-                                 "```")}))
+  (let [{:keys [user channel]} res]
+    (if (from-master? opt)
+      (do
+        (some->> slack-user slack/parse-user (dynamodb/add-reviewer dynamodb github-user))
+        (map->Payload {:type :message
+                       :user user
+                       :channel channel
+                       :text (str "ﾄｳﾛｸｼﾀﾖ!\n"
+                                  "```\n"
+                                  "slack: " slack-user "\n"
+                                  "github " github-user "\n"
+                                  "```")}))
       (map->Payload {:type :message
                      :user user
                      :channel channel
-                     :text "ｹﾝｹﾞﾝｶﾞﾅｲｰﾖ!"})))
+                     :text "ｹﾝｹﾞﾝｶﾞﾅｲｰﾖ!"}))))
+
+(defn- rm-reviewer
+  [{:keys [slack dynamodb res] :as opt} u]
+  (let [{:keys [user channel]} res]
+    (if (from-master? opt)
+      (do
+        (some->> u slack/parse-user (dynamodb/rm-reviewer dynamodb))
+        (map->Payload {:type :message
+                       :user user
+                       :channel channel
+                       :text (str "ｹｼﾀﾖ!\n"
+                                  "```\n"
+                                  u
+                                  "```")}))
+      (map->Payload {:type :message
+                     :user user
+                     :channel channel
+                     :text "ｹﾝｹﾞﾝｶﾞﾅｲｰﾖ!"}))))
 
 (defn- review
-  [{:keys [user channel] :as res}
-   pr]
-  (let [reviewer (some-> (redis/get-all-reviewers) seq rand-nth)
-        reviewer-slack (first reviewer)
-        reviewer-github (second reviewer)]
+  [{:keys [slack dynamodb res] :as opt} pr]
+  (let [{:keys [user channel]} res
+        reviewer (some->> (dynamodb/get-all-reviewers dynamodb) seq rand-nth)
+        {:keys [id github-id]} reviewer]
     (cond (not reviewer) (map->Payload {:type :message
                                         :user user
                                         :channel channel
@@ -306,9 +300,9 @@
                                   :text (str "prﾁｮｳﾀﾞｲ!")})
           :else
           (do
-            (github/add-reviewer pr reviewer-github)
+            (github/add-reviewer pr github-id)
             (map->Payload {:type :message
-                           :user reviewer-slack
+                           :user id
                            :channel channel
                            :text (str "っ＝[レビューをお願いします]\n"
                                       pr)})))))
@@ -333,85 +327,87 @@
                       me " rm-allowed-channel <channel>            : <channel>を監視対象に戻す\n"
                       me " add-reviewer <slack-user> <github-user> : <slack-user>をレビュワーに登録する\n"
                       me " rm-reviewer <slack-user>                : <slack-user>をレビュワーから外す\n"
+                      me " set-problem <problem> <answer>          : <problem>を出題リストに登録する\n"
+                      me " rm-problem <problem>                    : <problem>を出題リストから外す\n"
                       "```")}))
 
 (defn- channel-leave-handler
-  [slack {:keys [user channel] :as res}]
-  (cond
-    (from-master? slack res)
-    (map->Payload {:type :message
-                   :user user
-                   :channel channel
-                   :text "ﾊﾞｲﾊﾞｲ!"})
-    (redis/get-leaving-allowed? user)
-    (map->Payload {:type :message
-                   :user user
-                   :channel channel
-                   :text "ｲﾝｼﾞｬﾈｰﾉ!"})
-    ((set (redis/get-all-leaving-allowed-channels)) channel)
-    []
-    :else (question res)))
+  [{:keys [slack dynamodb res] :as opt}]
+  (let [{:keys [user channel]} res]
+    (cond
+      (from-master? opt)
+      (map->Payload {:type :message
+                     :user user
+                     :channel channel
+                     :text "ﾊﾞｲﾊﾞｲ!"})
+      (dynamodb/get-leaving-allowed? dynamodb user)
+      (map->Payload {:type :message
+                     :user user
+                     :channel channel
+                     :text "ｲﾝｼﾞｬﾈｰﾉ!"})
+      ((set (dynamodb/get-all-leaving-allowed-channels dynamodb)) channel)
+      []
+      :else (question opt))))
 
 (defn- command-message-handler
-  [slack
-   {:keys [user channel] :as res}]
-  (let [txt (split (:text res) #"\s+")
+  [{:keys [slack dynamodb res] :as opt}]
+  (let [{:keys [user channel]} res
+        txt (split (:text res) #"\s+")
         me (first txt)
         command (second txt)
         args (drop 2 txt)]
     (case command
       "help" (help res me)
-      "set-problem" (set-problem slack res (first args) (second args))
-      "rm-problem" (rm-problem slack res (first args))
-      "set-fyi" (set-fyi res (first args) (second args))
-      "rm-fyi" (rm-fyi res (first args))
-      "review" (review res (first args))
-      "add-allowed-channel" (add-allowed-channel slack res (first args))
-      "rm-allowed-channel" (rm-allowed-channel slack res (first args))
-      "add-reviewer" (add-reviewer slack res (first args) (second args))
-      "rm-reviewer" (rm-reviewer slack res (first args))
-      ("fyi" "FYI") (get-all-fyi res (first args))
+      "set-problem" (set-problem opt (first args) (second args))
+      "rm-problem" (rm-problem opt (first args))
+      "set-fyi" (set-fyi opt (first args) (second args))
+      "rm-fyi" (rm-fyi opt (first args))
+      ("fyi" "FYI") (get-all-fyi opt (first args))
+      "review" (review opt (first args))
+      "add-allowed-channel" (add-allowed-channel opt (first args))
+      "rm-allowed-channel" (rm-allowed-channel opt (first args))
+      "add-reviewer" (add-reviewer opt (first args) (second args))
+      "rm-reviewer" (rm-reviewer opt (first args))
       (map->Payload {:type :message
                      :user user
                      :channel channel
                      :text "ﾊﾞｶｼﾞｬﾈｰﾉ"}))))
 
 (defn- default-message-handler
-  [slack
-   {:keys [user channel text] :as res}]
-  (let [self (redis/get-self)
+  [{:keys [slack dynamodb res] :as opt}]
+  (let [{:keys [user channel text]} res
         txt (some-> text (split #"\s+" 2) second)]
-    (println res)
-    (when (slack/message-for-me? res self)
+    (when (slack/message-for-me? opt)
       (cond
-        (redis/get-checking-question? user)
-        (check-question res)
+        (dynamodb/get-checking-question? dynamodb user)
+        (check-question opt)
         (= (-> txt first) \()
-        (eval res txt)
-        :else (command-message-handler slack res)))))
+        (eval opt txt)
+        :else (command-message-handler opt)))))
 
 (defn message-handler
-  [slack res]
+  [{:keys [slack dynamodb res] :as opt}]
   (->> (case (:subtype res)
-         "channel_leave" (channel-leave-handler slack res)
-         "group_leave" (channel-leave-handler slack res)
-         (default-message-handler slack res))
+         "channel_leave" (channel-leave-handler opt)
+         "group_leave" (channel-leave-handler opt)
+         (default-message-handler opt))
        (slack/reaction! slack)))
 
 (defn register-events!
-  [slack]
-  (slack/sub-to-event! slack :message #(message-handler slack %)))
+  [{:keys [slack dynamodb] :as opt}]
+  (slack/sub-to-event! slack :message #(message-handler (merge opt {:res %}))))
 
 (defn app [req]
   {:status  200
    :headers {"Content-Type" "text/html"}
    :body    "hello HTTP!"})
 
-(defrecord BotComponent [master-user-name port server slack]
+(defrecord BotComponent [master-user-name port server slack dynamodb]
   component/Lifecycle
-  (start [{:keys [slack] :as this}]
+  (start [{:keys [slack dynamodb] :as this}]
     (println ";; Starting BotComponent")
-    (register-events! slack)
+    (register-events! {:slack slack
+                       :dynamodb dynamodb})
     (-> this
         (assoc :server (run-server app {:port port}))))
   (stop [{:keys [server] :as this}]

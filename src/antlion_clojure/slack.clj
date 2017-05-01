@@ -1,6 +1,5 @@
 (ns antlion-clojure.slack
-  (:require [antlion-clojure.redis :as redis]
-            [gniazdo.core :as ws]
+  (:require [gniazdo.core :as ws]
             [clojure.core.async :refer [go-loop <! put!]]
             [clj-slack.chat :as chat]
             [clj-slack.channels :as channels]
@@ -19,7 +18,7 @@
 
 (defn parse-channel
   [s]
-  (some-> (re-matches #"\<(@.*)\>" s)
+  (some-> (re-matches #"\<(.*)\>" s)
           second
           (clojure.string/split #"\|")
           (update 0 #(->> % (drop 1) (apply str)))
@@ -33,9 +32,11 @@
            (apply str)))
 
 (defn message-for-me?
-  [res self]
+  [{:keys [slack res] :as opt}]
   (when (:text res)
-    (re-matches (re-pattern (str "\\<\\@" self "\\> .*"))
+    (re-matches (re-pattern (str "\\<\\@"
+                                 (-> slack :rtm-connection :start :self :id)
+                                 "\\> .*"))
                 (:text res))))
 
 (defn post
@@ -105,7 +106,6 @@
     (println ";; Starting SlackComponent")
     (let [token (-> connection :token)
           rtm-connection (rtm/connect token)]
-      (redis/set-self (-> rtm-connection :start :self :id))
       (-> this
           (assoc :rtm-connection rtm-connection))))
   (stop [{:keys [rtm-connection] :as this}]
