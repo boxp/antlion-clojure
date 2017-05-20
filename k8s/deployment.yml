@@ -9,6 +9,8 @@ spec:
       labels:
         app: antlion-clojure
     spec:
+      nodeSelector:
+        !cloud.google.com/gke-preemptible
       containers:
       - name: antlion-clojure
         image: asia.gcr.io/boxp-tk/antlion-clojure:${CIRCLE_SHA1}
