@@ -6,7 +6,7 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.clojure/core.async "0.2.395"]
                  [org.julienxx/clj-slack "0.5.4"]
-                 [slack-rtm "0.1.6"]
+                 [slack-rtm "0.1.5"]
                  [clojail "1.0.6"]
                  [org.clojure/tools.namespace "0.2.10"]
                  [com.taoensso/carmine "2.15.0"]
