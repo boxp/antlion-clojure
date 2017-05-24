@@ -285,12 +285,16 @@
                      :channel channel
                      :text "ｹﾝｹﾞﾝｶﾞﾅｲｰﾖ!"}))))
 
+(defn- remove-me
+  [reviewers slack]
+  (remove #(= (-> slack :rtm-connection :start :self :id) (:id %)) reviewers))
+
 (defn- get-reviewer
   [{:keys [slack dynamodb res] :as opt} usergroups-str]
   (let [usergroups-users (some->> usergroups-str
                                   slack/parse-usergroups
                                   (slack/usergroups-users slack))
-        reviewers (dynamodb/get-all-reviewers dynamodb)]
+        reviewers (-> (dynamodb/get-all-reviewers dynamodb) remove-me)]
     (if (seq usergroups-users)
       (some->> reviewers
                (filter #((set usergroups-users) (:id %)))
