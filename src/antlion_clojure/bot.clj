@@ -294,7 +294,7 @@
   (let [usergroups-users (some->> usergroups-str
                                   slack/parse-usergroups
                                   (slack/usergroups-users slack))
-        reviewers (-> (dynamodb/get-all-reviewers dynamodb) remove-me)]
+        reviewers (-> (dynamodb/get-all-reviewers dynamodb) (remove-me slack))]
     (if (seq usergroups-users)
       (some->> reviewers
                (filter #((set usergroups-users) (:id %)))
