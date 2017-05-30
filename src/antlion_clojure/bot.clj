@@ -325,7 +325,8 @@
             (map->Payload {:type :message
                            :user id
                            :channel channel
-                           :text (str "っ＝[レビューをお願いします]")})))))
+                           :text (str "っ＝[レビューをお願いします]\n"
+                                      pr)})))))
 
 (defn- help
   [{:keys [user channel] :as res} me]
@@ -371,7 +372,6 @@
 
 (defn- command-message-handler
   [{:keys [slack dynamodb res] :as opt}]
-  (println res)
   (let [{:keys [user channel]} res
         txt (split (:text res) #"\s+")
         me (first txt)
