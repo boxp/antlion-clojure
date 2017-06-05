@@ -286,16 +286,15 @@
                      :text "ｹﾝｹﾞﾝｶﾞﾅｲｰﾖ!"}))))
 
 (defn- remove-me
-  [reviewers slack]
-  (println reviewers slack)
-  (remove #(= (-> slack :rtm-connection :start :self :id) (:id %)) reviewers))
+  [reviewers res]
+  (remove #(= (-> res :user) (:id %)) reviewers))
 
 (defn- get-reviewer
   [{:keys [slack dynamodb res] :as opt} usergroups-str]
   (let [usergroups-users (some->> usergroups-str
                                   slack/parse-usergroups
                                   (slack/usergroups-users slack))
-        reviewers (-> (dynamodb/get-all-reviewers dynamodb) (remove-me slack))]
+        reviewers (-> (dynamodb/get-all-reviewers dynamodb) (remove-me res))]
     (if (seq usergroups-users)
       (some->> reviewers
                (filter #((set usergroups-users) (:id %)))
