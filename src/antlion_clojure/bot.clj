@@ -287,6 +287,7 @@
 
 (defn- remove-me
   [reviewers slack]
+  (println reviewers slack)
   (remove #(= (-> slack :rtm-connection :start :self :id) (:id %)) reviewers))
 
 (defn- get-reviewer
@@ -325,8 +326,7 @@
             (map->Payload {:type :message
                            :user id
                            :channel channel
-                           :text (str "っ＝[レビューをお願いします]\n"
-                                      pr)})))))
+                           :text (str "っ＝[レビューをお願いします]\n")})))))
 
 (defn- help
   [{:keys [user channel] :as res} me]
