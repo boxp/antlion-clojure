@@ -3,7 +3,9 @@
             [environ.core :refer [env]]
             [antlion-clojure.slack :refer [slack-component]]
             [antlion-clojure.dynamodb :refer [dynamodb-component]]
-            [antlion-clojure.bot :refer [bot-component]])
+            [antlion-clojure.bot :refer [bot-component]]
+            [antlion-clojure.infra.datasource.pubsub :refer [pubsub-subscription-component]]
+            [antlion-clojure.infra.repository.lemming :refer [lemming-repository-component]])
   (:gen-class))
 
 (defn antlion-clojure-system
@@ -18,11 +20,15 @@
   (component/system-map
     :dynamodb (dynamodb-component antlion-clojure-aws-access-key antlion-clojure-aws-secret-key antlion-clojure-dynamodb-endpoint)
     :slack (slack-component antlion-clojure-token antlion-clojure-invite-token)
+    :pubsub-subscription (pubsub-subscription-component)
+    :lemming-repository (component/using
+                          (lemming-repository-component)
+                          [:pubsub-subscription])
     :bot (component/using
-           (bot-component {:master-user-name master-user-name
-                           :port port})
+           (bot-component {:master-user-name master-user-name})
            [:slack
-            :dynamodb])))
+            :dynamodb
+            :lemming-repository])))
 
 (defn load-config []
   {:antlion-clojure-token (env :antlion-clojure-token)

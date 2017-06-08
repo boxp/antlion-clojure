@@ -11,10 +11,14 @@
                  [org.clojure/tools.namespace "0.2.10"]
                  [com.taoensso/carmine "2.15.0"]
                  [environ "1.1.0"]
-                 [http-kit "2.2.0"]
+                 [ring "1.6.1"]
+                 [ring/ring-json "0.4.0"]
+                 [compojure "1.6.0"]
+                 [cheshire "5.7.1"]
                  [tentacles "0.5.1"]
                  [com.stuartsierra/component "0.3.2"]
-                 [com.taoensso/faraday "1.8.0"]]
+                 [com.taoensso/faraday "1.8.0"]
+                 [com.google.cloud/google-cloud-pubsub "0.17.2-alpha"]]
   :profiles
   {:dev {:source-paths ["src" "dev"]}
    :uberjar {:main antlion-clojure.system}})

@@ -8,7 +8,6 @@
             [clojure.string :refer [split]]
             [clojure.set :refer [intersection]]
             [com.stuartsierra.component :as component])
-  (:use org.httpkit.server)
   (:gen-class))
 
 (defn from-master?
@@ -413,6 +412,16 @@
          (default-message-handler opt))
        (slack/reaction! slack)))
 
+(defn lemming-handler
+  [{:keys [slack dynamodb res] :as opt} co2]
+  (if (> (:value co2) 1500)
+    (slack/reaction! slack
+      (map->Payload
+        {:type :message
+         :user user
+         :channel channel
+         :text (str "ﾜｰﾆﾝ!つ = [Co2濃度" (:value co2) "ppmを超えました")}))))
+
 (defn register-events!
   [{:keys [slack dynamodb] :as opt}]
   (slack/sub-to-event! slack :message #(message-handler (merge opt {:res %}))))
@@ -422,23 +431,17 @@
    :headers {"Content-Type" "text/html"}
    :body    "hello HTTP!"})
 
-(defrecord BotComponent [master-user-name port server slack dynamodb]
+(defrecord BotComponent [master-user-name port server slack dynamodb lemming-repository]
   component/Lifecycle
   (start [{:keys [slack dynamodb] :as this}]
     (println ";; Starting BotComponent")
     (register-events! {:slack slack
                        :dynamodb dynamodb})
-    (-> this
-        (assoc :server (run-server app {:port port}))))
-  (stop [{:keys [server] :as this}]
+    this)
+  (stop [this]
     (println ";; Stopping BotComponent")
-    (when-not (nil? server)
-      (server))
-    (-> this
-        (dissoc :server))))
+    this))
 
 (defn bot-component [{:keys [master-user-name
-                             port
                              allowed-channels]}]
-  (map->BotComponent {:master-user-name master-user-name
-                      :port port}))
+  (map->BotComponent {:master-user-name master-user-name}))
