@@ -1,9 +1,11 @@
 (ns antlion-clojure.bot
-  (:require [antlion-clojure.dynamodb :as dynamodb]
+  (:require [clojure.core.async :refer [go-loop <!]]
+            [antlion-clojure.dynamodb :as dynamodb]
             [antlion-clojure.sandbox :refer [parse-form format-result]]
             [environ.core :refer [env]]
             [antlion-clojure.slack :as slack :refer [map->Payload parse-channel]]
             [antlion-clojure.github :as github]
+            [antlion-clojure.infra.repository.lemming :refer [subscribe]]
             [slack-rtm.core :as rtm]
             [clojure.string :refer [split]]
             [clojure.set :refer [intersection]]
@@ -195,7 +197,6 @@
    chan-str]
   (let [{:keys [user channel]} res
         c (parse-channel chan-str)]
-    (println chan-str)
     (try
       (if (from-master? opt)
         (do
@@ -326,6 +327,18 @@
                            :channel channel
                            :text (str "っ＝[レビューをお願いします]\n")})))))
 
+(defn- set-lemming-channel
+  [{:keys [slack dynamodb res] :as opt} channel-str]
+  (let [channel (parse-channel channel-str)]
+    (dynamodb/set-lemming-channel dynamodb (:id channel))
+    (map->Payload {:type :message
+                   :user (:user res)
+                   :channel (:channel res)
+                   :text (str "ﾄｳﾛｸｼﾀﾖ!\n"
+                              "```\n"
+                              "channel: " (:name channel) "\n"
+                              "```")})))
+
 (defn- help
   [{:keys [user channel] :as res} me]
   (map->Payload {:type :message
@@ -339,6 +352,7 @@
                       me " fyi                                     : メモ一覧を表示\n"
                       me " set-fyi <title> <body>                  : <title> <body>をメモ\n"
                       me " rm-fyi <title>                          : <title>を削除\n"
+                      me " set-lemming-channel <channel>           : <channel>でCO2濃度の警告を出す\n"
                       me " review <pr> <usergroup?>                : <pr>を誰かに割り振る(<usergroup?>に絞る事が出来る)\n"
                       me " <S-Expression>                          : <S-Expression>を評価\n"
                       "------------------ 管理者限定機能 ------------------\n"
@@ -381,6 +395,7 @@
       "rm-problem" (rm-problem opt (first args))
       "set-fyi" (set-fyi opt (first args) (second args))
       "rm-fyi" (rm-fyi opt (first args))
+      "set-lemming-channel" (set-lemming-channel opt (first args))
       ("fyi" "FYI") (get-all-fyi opt (first args))
       "review" (review opt (first args) (second args))
       "add-allowed-channel" (add-allowed-channel opt (first args))
@@ -412,15 +427,23 @@
          (default-message-handler opt))
        (slack/reaction! slack)))
 
+(def max-ppm 1000)
+
 (defn lemming-handler
   [{:keys [slack dynamodb res] :as opt} co2]
-  (if (> (:value co2) 1500)
-    (slack/reaction! slack
-      (map->Payload
-        {:type :message
-         :user user
-         :channel channel
-         :text (str "ﾜｰﾆﾝ!つ = [Co2濃度" (:value co2) "ppmを超えました")}))))
+  (let [channel-id (some-> (dynamodb/get-lemming-channel dynamodb) :channel-id)
+        last-state (some-> (dynamodb/get-lemming-last-state dynamodb) :state)]
+    (when (and
+            channel-id
+            last-state
+            (> max-ppm last-state)
+            (< (:value co2) max-ppm))
+      (dynamodb/set-lemming-last-state co2)
+      (slack/reaction! slack
+        (map->Payload
+          {:type :message
+           :channel channel-id
+           :text (str "ﾜｰﾆﾝ!つ = [Co2濃度" (:value co2) "ppmを超えました")})))))
 
 (defn register-events!
   [{:keys [slack dynamodb] :as opt}]
@@ -433,10 +456,14 @@
 
 (defrecord BotComponent [master-user-name port server slack dynamodb lemming-repository]
   component/Lifecycle
-  (start [{:keys [slack dynamodb] :as this}]
+  (start [{:keys [slack dynamodb lemming-repository] :as this}]
     (println ";; Starting BotComponent")
     (register-events! {:slack slack
                        :dynamodb dynamodb})
+    (go-loop [in {:value 0}]
+      (when in
+        (lemming-handler this in)
+        (recur (<! (subscribe lemming-repository)))))
     this)
   (stop [this]
     (println ";; Stopping BotComponent")

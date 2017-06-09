@@ -16,6 +16,12 @@
                               :block? true}]
    :antlion-clojure-fyi [[:title :s]
                          {:throughput {:read 1 :write 1}
+                          :block? true}]
+   :antlion-clojure-notify-channel [[:name :s]
+                         {:throughput {:read 1 :write 1}
+                          :block? true}]
+   :antlion-clojure-last-state [[:name :s]
+                         {:throughput {:read 1 :write 1}
                           :block? true}]})
 
 (defn delete-tables
@@ -120,6 +126,42 @@
   (far/update-item opts :antlion-clojure-user
                    {:id id}
                    {:reviewer? [:put false]}))
+
+(defn- get-notify
+  [{:keys [opts] :as comp} name]
+  (far/get-item opts :antlion-clojure-notify-channel {:name name}))
+
+(defn get-lemming-channel
+  [{:keys [opts] :as comp}]
+  (get-notify comp "lemming"))
+
+(defn- set-notify
+  [{:keys [opts] :as comp} name channel-id]
+  (far/update-item opts :antlion-clojure-notify-channel
+                   {:name name}
+                   {:channel-id [:put channel-id]}))
+
+(defn set-lemming-channel
+  [{:keys [opts] :as comp} channel-id]
+  (set-notify comp "lemming" channel-id))
+
+(defn- get-last-state
+  [{:keys [opts] :as comp} name]
+  (far/get-item opts :antlion-clojure-last-state {:name name}))
+
+(defn get-lemming-last-state
+  [{:keys [opts] :as comp}]
+  (get-last-state comp "lemming"))
+
+(defn- set-last-state
+  [{:keys [opts] :as comp} name state]
+  (far/put-item opts :antlion-clojure-last-state
+                {:name name}
+                {:state state}))
+
+(defn set-lemming-last-state
+  [{:keys [opts] :as comp} state]
+  (set-last-state comp "lemming" state))
 
 (defrecord DynamoDBComponent [opts access-key secret-key endpoint]
   component/Lifecycle
