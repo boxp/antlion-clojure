@@ -437,7 +437,7 @@
             channel-id
             last-state
             (> max-ppm last-state)
-            (< (:value co2) max-ppm))
+            (> (:value co2) max-ppm))
       (dynamodb/set-lemming-last-state co2)
       (slack/reaction! slack
         (map->Payload
