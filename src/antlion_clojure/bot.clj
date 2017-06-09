@@ -433,7 +433,7 @@
   [{:keys [slack dynamodb res] :as opt} co2]
   (let [channel-id (some-> (dynamodb/get-lemming-channel dynamodb) :channel-id)
         last-state (some-> (dynamodb/get-lemming-last-state dynamodb) :state)]
-    (dynamodb/set-lemming-last-state co2)
+    (dynamodb/set-lemming-last-state dynamodb co2)
     (when (and
             channel-id
             last-state
