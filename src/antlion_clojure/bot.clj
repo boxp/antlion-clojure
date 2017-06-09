@@ -339,6 +339,14 @@
                               "channel: " (:name channel) "\n"
                               "```")})))
 
+(defn- get-lemming-last-state
+  [{:keys [slack dynamodb res] :as opt}]
+  (let [last-state (:state (dynamodb/get-lemming-last-state dynamodb))]
+    (map->Payload {:type :message
+                   :user (:user res)
+                   :channel (:channel res)
+                   :text (str "っ＝[" last-state "ppm]")})))
+
 (defn- help
   [{:keys [user channel] :as res} me]
   (map->Payload {:type :message
@@ -353,6 +361,7 @@
                       me " set-fyi <title> <body>                  : <title> <body>をメモ\n"
                       me " rm-fyi <title>                          : <title>を削除\n"
                       me " set-lemming-channel <channel>           : <channel>でCO2濃度の警告を出す\n"
+                      me " get-co2                                 : CO2濃度を確認する\n"
                       me " review <pr> <usergroup?>                : <pr>を誰かに割り振る(<usergroup?>に絞る事が出来る)\n"
                       me " <S-Expression>                          : <S-Expression>を評価\n"
                       "------------------ 管理者限定機能 ------------------\n"
@@ -396,6 +405,7 @@
       "set-fyi" (set-fyi opt (first args) (second args))
       "rm-fyi" (rm-fyi opt (first args))
       "set-lemming-channel" (set-lemming-channel opt (first args))
+      "get-co2" (get-lemming-last-state opt)
       ("fyi" "FYI") (get-all-fyi opt (first args))
       "review" (review opt (first args) (second args))
       "add-allowed-channel" (add-allowed-channel opt (first args))
@@ -433,7 +443,7 @@
   [{:keys [slack dynamodb res] :as opt} co2]
   (let [channel-id (some-> (dynamodb/get-lemming-channel dynamodb) :channel-id)
         last-state (some-> (dynamodb/get-lemming-last-state dynamodb) :state)]
-    (dynamodb/set-lemming-last-state dynamodb co2)
+    (dynamodb/set-lemming-last-state dynamodb (:value co2))
     (when (and
             channel-id
             last-state

@@ -29,7 +29,6 @@
           (update :pubsub-subscription
                   #(add-subscriber % topic-key subscription-key
                                    (fn [m]
-                                     (println (message->Co2 m))
                                      (put! c (message->Co2 m)))))
           (assoc :channel c))))
   (stop [this]
