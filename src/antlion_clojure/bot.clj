@@ -433,12 +433,12 @@
   [{:keys [slack dynamodb res] :as opt} co2]
   (let [channel-id (some-> (dynamodb/get-lemming-channel dynamodb) :channel-id)
         last-state (some-> (dynamodb/get-lemming-last-state dynamodb) :state)]
+    (dynamodb/set-lemming-last-state co2)
     (when (and
             channel-id
             last-state
             (> max-ppm last-state)
             (> (:value co2) max-ppm))
-      (dynamodb/set-lemming-last-state co2)
       (slack/reaction! slack
         (map->Payload
           {:type :message
