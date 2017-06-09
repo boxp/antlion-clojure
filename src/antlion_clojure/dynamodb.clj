@@ -157,7 +157,7 @@
   [{:keys [opts] :as comp} name state]
   (far/put-item opts :antlion-clojure-last-state
                 {:name name}
-                {:state state}))
+                {:state [:put state]}))
 
 (defn set-lemming-last-state
   [{:keys [opts] :as comp} state]
