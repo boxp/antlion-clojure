@@ -453,7 +453,7 @@
         (map->Payload
           {:type :message
            :channel channel-id
-           :text (str "ﾜｰﾆﾝ!つ = [Co2濃度" (:value co2) "ppmを超えました")})))))
+           :text (str "ﾜｰﾆﾝ!つ = [Co2濃度" max-ppm "ppmを超えました]")})))))
 
 (defn register-events!
   [{:keys [slack dynamodb] :as opt}]
@@ -470,7 +470,8 @@
     (println ";; Starting BotComponent")
     (register-events! {:slack slack
                        :dynamodb dynamodb})
-    (go-loop [in {:value 0}]
+    (go-loop [in {:value (or (some-> (dynamodb/get-lemming-last-state dynamodb) :state)
+                             0)}]
       (when in
         (lemming-handler this in)
         (recur (<! (subscribe lemming-repository)))))
