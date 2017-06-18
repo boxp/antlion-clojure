@@ -6,6 +6,7 @@
             [antlion-clojure.slack :as slack :refer [map->Payload parse-channel]]
             [antlion-clojure.github :as github]
             [antlion-clojure.infra.repository.lemming :refer [subscribe]]
+            [antlion-clojure.domain.usecase.to-lemming :refer [set-led]]
             [slack-rtm.core :as rtm]
             [clojure.string :refer [split]]
             [clojure.set :refer [intersection]]
@@ -347,6 +348,14 @@
                    :channel (:channel res)
                    :text (str "っ＝[" last-state "ppm]")})))
 
+(defn- set-lemming-led
+  [{:keys [slack to-lemming-usecase res] :as opt} value]
+  (set-led to-lemming-usecase value)
+  (map->Payload {:type :message
+                 :user (:user res)
+                 :channel (:channel res)
+                 :text (str "led value: " value)}))
+
 (defn- help
   [{:keys [user channel] :as res} me]
   (map->Payload {:type :message
@@ -406,6 +415,7 @@
       "rm-fyi" (rm-fyi opt (first args))
       "set-lemming-channel" (set-lemming-channel opt (first args))
       "get-co2" (get-lemming-last-state opt)
+      "set-led" (set-lemming-led opt (first args))
       ("fyi" "FYI") (get-all-fyi opt (first args))
       "review" (review opt (first args) (second args))
       "add-allowed-channel" (add-allowed-channel opt (first args))
@@ -464,12 +474,11 @@
    :headers {"Content-Type" "text/html"}
    :body    "hello HTTP!"})
 
-(defrecord BotComponent [master-user-name port server slack dynamodb lemming-repository]
+(defrecord BotComponent [master-user-name port server slack dynamodb lemming-repository to-lemming-usecase]
   component/Lifecycle
-  (start [{:keys [slack dynamodb lemming-repository] :as this}]
+  (start [{:keys [slack dynamodb lemming-repository to-lemming-usecase] :as this}]
     (println ";; Starting BotComponent")
-    (register-events! {:slack slack
-                       :dynamodb dynamodb})
+    (register-events! this)
     (go-loop [in {:value (or (some-> (dynamodb/get-lemming-last-state dynamodb) :state)
                              0)}]
       (when in

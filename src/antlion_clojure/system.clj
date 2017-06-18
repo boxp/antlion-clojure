@@ -4,8 +4,10 @@
             [antlion-clojure.slack :refer [slack-component]]
             [antlion-clojure.dynamodb :refer [dynamodb-component]]
             [antlion-clojure.bot :refer [bot-component]]
-            [antlion-clojure.infra.datasource.pubsub :refer [pubsub-subscription-component]]
-            [antlion-clojure.infra.repository.lemming :refer [lemming-repository-component]])
+            [antlion-clojure.infra.datasource.pubsub :refer [pubsub-subscription-component pubsub-publisher-component]]
+            [antlion-clojure.infra.repository.lemming :refer [lemming-repository-component]]
+            [antlion-clojure.infra.repository.to-lemming :refer [to-lemming-repository-component]]
+            [antlion-clojure.domain.usecase.to-lemming :refer [to-lemming-usecase-component]])
   (:gen-class))
 
 (defn antlion-clojure-system
@@ -21,14 +23,22 @@
     :dynamodb (dynamodb-component antlion-clojure-aws-access-key antlion-clojure-aws-secret-key antlion-clojure-dynamodb-endpoint)
     :slack (slack-component antlion-clojure-token antlion-clojure-invite-token)
     :pubsub-subscription (pubsub-subscription-component)
+    :pubsub-publisher (pubsub-publisher-component)
     :lemming-repository (component/using
                           (lemming-repository-component)
                           [:pubsub-subscription])
+    :to-lemming-repository (component/using
+                             (to-lemming-repository-component)
+                             [:pubsub-publisher])
+    :to-lemming-usecase (component/using
+                             (to-lemming-usecase-component)
+                             [:to-lemming-repository])
     :bot (component/using
            (bot-component {:master-user-name master-user-name})
            [:slack
             :dynamodb
-            :lemming-repository])))
+            :lemming-repository
+            :to-lemming-usecase])))
 
 (defn load-config []
   {:antlion-clojure-token (env :antlion-clojure-token)
