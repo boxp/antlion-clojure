@@ -346,7 +346,7 @@
     (map->Payload {:type :message
                    :user (:user res)
                    :channel (:channel res)
-                   :text (str "っ＝[" last-state "ppm]")})))
+                   :text (str last-state "ppmﾀﾞﾖ-")})))
 
 (defn- set-lemming-led
   [{:keys [slack to-lemming-usecase res] :as opt} value]
@@ -463,7 +463,9 @@
         (map->Payload
           {:type :message
            :channel channel-id
-           :text (str "ﾜｰﾆﾝ!つ = [Co2濃度" max-ppm "ppmを超えました]")})))))
+           :text (str
+                   "<!here> " (:value co2) "ppmﾀﾞﾖ-\n"
+                   "*空気中のCo2濃度が" max-ppm "ppmを超えました*")})))))
 
 (defn register-events!
   [{:keys [slack dynamodb] :as opt}]
