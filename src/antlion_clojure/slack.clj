@@ -12,7 +12,7 @@
 
 ;; REST API
 (defrecord Payload
-  [type subtype user text channel group])
+  [type subtype user text channel group optionals])
 
 (defrecord Channel
   [id name])
@@ -47,12 +47,12 @@
                 (:text res))))
 
 (defn post
-  [{:keys [connection]} {:keys [channel text]}]
-  (chat/post-message connection channel text {:as_user "true"}))
+  [{:keys [connection]} {:keys [channel text optionals]}]
+  (chat/post-message connection channel text (merge {:as_user "true"} optionals)))
 
 (defn reply
-  [{:keys [connection]} {:keys [channel text user]}]
-  (chat/post-message connection channel (str "<@" user "> " text) {:as_user "true"}))
+  [{:keys [connection]} {:keys [channel text user optionals]}]
+  (chat/post-message connection channel (str "<@" user "> " text) (merge {:as_user "true"} optionals)))
 
 (defn channel-invite
   [{:keys [connection invite-token]} {:keys [channel user]}]

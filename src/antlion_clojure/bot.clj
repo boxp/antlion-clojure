@@ -13,6 +13,8 @@
             [com.stuartsierra.component :as component])
   (:gen-class))
 
+(def danger-ppm 1000)
+
 (defn from-master?
   [{:keys [slack dynamodb res] :as opt}]
   (let [{:keys [master-user-name]} slack]
@@ -346,7 +348,8 @@
     (map->Payload {:type :message
                    :user (:user res)
                    :channel (:channel res)
-                   :text (str last-state "ppmﾀﾞﾖ-")})))
+                   :optionals {:attachments [{:text (str "現在の二酸化炭素濃度: " last-state "ppm")
+                                              :color (if (> last-state danger-ppm) "danger" "good")}]}})))
 
 (defn- set-lemming-led
   [{:keys [slack to-lemming-usecase res] :as opt} value]
@@ -447,8 +450,6 @@
          (default-message-handler opt))
        (slack/reaction! slack)))
 
-(def max-ppm 1000)
-
 (defn lemming-handler
   [{:keys [slack dynamodb res] :as opt} co2]
   (let [channel-id (some-> (dynamodb/get-lemming-channel dynamodb) :channel-id)
@@ -457,15 +458,17 @@
     (when (and
             channel-id
             last-state
-            (> max-ppm last-state)
-            (> (:value co2) max-ppm))
+            (> danger-ppm last-state)
+            (> (:value co2) danger-ppm))
       (slack/reaction! slack
         (map->Payload
           {:type :message
            :channel channel-id
-           :text (str
-                   "<!here> " (:value co2) "ppmﾀﾞﾖ-\n"
-                   "*空気中のCo2濃度が" max-ppm "ppmを超えました*")})))))
+           :optionals {:attachments [{:text (str
+                                             "<!here> " (:value co2) "ppmﾀﾞﾖ-\n"
+                                             "*空気中のCo2濃度が" danger-ppm "ppmを超えました*")
+                                     :color "danger"}]}
+           })))))
 
 (defn register-events!
   [{:keys [slack dynamodb] :as opt}]
