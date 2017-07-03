@@ -464,6 +464,7 @@
         (map->Payload
           {:type :message
            :channel channel-id
+           :text ""
            :optionals {:attachments [{:text (str
                                              "<!here> " (:value co2) "ppmﾀﾞﾖ-\n"
                                              "*空気中のCo2濃度が" danger-ppm "ppmを超えました*")
