@@ -475,11 +475,6 @@
   [{:keys [slack dynamodb] :as opt}]
   (slack/sub-to-event! slack :message #(message-handler (merge opt {:res %}))))
 
-(defn app [req]
-  {:status  200
-   :headers {"Content-Type" "text/html"}
-   :body    "hello HTTP!"})
-
 (defrecord BotComponent [master-user-name port server slack dynamodb lemming-repository to-lemming-usecase]
   component/Lifecycle
   (start [{:keys [slack dynamodb lemming-repository to-lemming-usecase] :as this}]

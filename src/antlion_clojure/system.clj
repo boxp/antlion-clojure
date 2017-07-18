@@ -7,7 +7,9 @@
             [antlion-clojure.infra.datasource.pubsub :refer [pubsub-subscription-component pubsub-publisher-component]]
             [antlion-clojure.infra.repository.lemming :refer [lemming-repository-component]]
             [antlion-clojure.infra.repository.to-lemming :refer [to-lemming-repository-component]]
-            [antlion-clojure.domain.usecase.to-lemming :refer [to-lemming-usecase-component]])
+            [antlion-clojure.domain.usecase.to-lemming :refer [to-lemming-usecase-component]]
+            [antlion-clojure.app.webapp.handler :refer [webapp-handler-component]]
+            [antlion-clojure.app.webapp.endpoint :refer [webapp-endpoint-component]])
   (:gen-class))
 
 (defn antlion-clojure-system
@@ -17,7 +19,7 @@
            antlion-clojure-aws-secret-key
            antlion-clojure-dynamodb-endpoint
            master-user-name
-           port]
+           antlion-clojure-webapp-port]
     :as config-options}]
   (component/system-map
     :dynamodb (dynamodb-component antlion-clojure-aws-access-key antlion-clojure-aws-secret-key antlion-clojure-dynamodb-endpoint)
@@ -38,7 +40,11 @@
            [:slack
             :dynamodb
             :lemming-repository
-            :to-lemming-usecase])))
+            :to-lemming-usecase])
+    :webapp-handler (webapp-handler-component)
+    :webapp-endpoint (component/using
+                       (webapp-endpoint-component antlion-clojure-webapp-port)
+                       [:webapp-handler])))
 
 (defn load-config []
   {:antlion-clojure-token (env :antlion-clojure-token)
@@ -47,8 +53,8 @@
    :antlion-clojure-aws-access-key (env :antlion-clojure-aws-access-key)
    :antlion-clojure-aws-secret-key (env :antlion-clojure-aws-secret-key)
    :antlion-clojure-dynamodb-endpoint (env :antlion-clojure-dynamodb-endpoint)
-   :master-user-name (env :antlion-clojure-master-user-name)
-   :port (or (env :port) 3000)})
+   :antlion-clojure-webapp-port (-> (or (env :antlion-clojure-webapp-port) "3000") Integer/parseInt)
+   :master-user-name (env :antlion-clojure-master-user-name)})
 
 (defn -main []
   (component/start

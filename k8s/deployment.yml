@@ -48,3 +48,8 @@ spec:
               secretKeyRef:
                 name: antlion-clojure
                 key: dynamodb-endpoint
+          - name: ANTLION_CLOJURE_WEBAPP_PORT
+            valueFrom:
+              secretKeyRef:
+                name: antlion-clojure
+                key: webapp-port
