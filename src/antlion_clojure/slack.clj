@@ -46,6 +46,11 @@
                                  "\\> .*"))
                 (:text res))))
 
+(defn message-from-me?
+  [{:keys [slack res] :as opt}]
+  (= (-> slack :rtm-connection :start :self :id)
+     (:id res)))
+
 (defn post
   [{:keys [connection]} {:keys [channel text optionals]}]
   (chat/post-message connection channel text (merge {:as_user "true"} optionals)))
@@ -118,13 +123,12 @@
   component/Lifecycle
   (start [this]
     (println ";; Starting SlackComponent")
-    (let [token (-> connection :token)
-          rtm-connection (rtm/connect token)]
+    (let [rtm-connection (rtm/connect connection)]
       (-> this
           (assoc :rtm-connection rtm-connection))))
   (stop [{:keys [rtm-connection] :as this}]
       (println ";; Stopping SlackComponent")
-      (when-not (nil? rtm-connection)
+      (when-not (:dispatcher rtm-connection)
         (rtm/send-event (:dispatcher rtm-connection) :close))
       (-> this
           (dissoc :rtm-connection))))

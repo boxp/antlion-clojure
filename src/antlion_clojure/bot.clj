@@ -434,7 +434,8 @@
   [{:keys [slack dynamodb res] :as opt}]
   (let [{:keys [user channel text]} res
         txt (some-> text (split #"\s+" 2) second)]
-    (when (slack/message-for-me? opt)
+    (when (and (slack/message-for-me? opt)
+               (not (slack/message-from-me? opt)))
       (cond
         (dynamodb/get-checking-question? dynamodb user)
         (check-question opt)
