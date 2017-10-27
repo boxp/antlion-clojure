@@ -4,6 +4,8 @@
             [antlion-clojure.slack :refer [slack-component]]
             [antlion-clojure.dynamodb :refer [dynamodb-component]]
             [antlion-clojure.bot :refer [bot-component]]
+            [antlion-clojure.app.webapp.handler :refer [webapp-handler-component]]
+            [antlion-clojure.app.webapp.endpoint :refer [webapp-endpoint-component]]
             [antlion-clojure.infra.datasource.pubsub :refer [pubsub-subscription-component pubsub-publisher-component]]
             [antlion-clojure.infra.repository.lemming :refer [lemming-repository-component]]
             [antlion-clojure.infra.repository.to-lemming :refer [to-lemming-repository-component]]
@@ -38,7 +40,13 @@
            [:slack
             :dynamodb
             :lemming-repository
-            :to-lemming-usecase])))
+            :to-lemming-usecase])
+    :webapp-handler (component/using
+                      (webapp-handler-component)
+                      [])
+    :webapp-endpoint (component/using
+                       (webapp-endpoint-component port)
+                       [:webapp-handler])))
 
 (defn load-config []
   {:antlion-clojure-token (env :antlion-clojure-token)
@@ -48,7 +56,7 @@
    :antlion-clojure-aws-secret-key (env :antlion-clojure-aws-secret-key)
    :antlion-clojure-dynamodb-endpoint (env :antlion-clojure-dynamodb-endpoint)
    :master-user-name (env :antlion-clojure-master-user-name)
-   :port (or (env :port) 3000)})
+   :port (-> (or (env :port) "3000") Integer/parseInt)})
 
 (defn -main []
   (component/start
