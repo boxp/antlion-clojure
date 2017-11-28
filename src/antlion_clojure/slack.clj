@@ -49,7 +49,7 @@
 (defn message-from-me?
   [{:keys [slack res] :as opt}]
   (= (-> slack :rtm-connection :start :self :id)
-     (:id res)))
+     (:user res)))
 
 (defn post
   [{:keys [connection]} {:keys [channel text optionals]}]
