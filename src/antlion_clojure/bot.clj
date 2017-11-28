@@ -445,6 +445,7 @@
 
 (defn message-handler
   [{:keys [slack dynamodb res] :as opt}]
+  (println opt)
   (->> (case (:subtype res)
          "channel_leave" (channel-leave-handler opt)
          "group_leave" (channel-leave-handler opt)
