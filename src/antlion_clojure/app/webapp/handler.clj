@@ -4,8 +4,10 @@
 
 (defn index
   [{:keys [] :as comp}]
-  (-> {:message "hello"}
-      generate-string))
+  {:status 200
+   :headers {"Content-Type" "application/json"}}
+   :body (-> {:message "hello"}
+             generate-string))
 
 (defrecord WebappHandlerComponent []
   component/Lifecycle

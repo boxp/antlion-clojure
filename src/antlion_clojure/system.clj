@@ -41,9 +41,8 @@
             :dynamodb
             :lemming-repository
             :to-lemming-usecase])
-    :webapp-handler (component/using
-                      (webapp-handler-component)
-                      [])
+    :webapp-handler (webapp-handler-component)
+
     :webapp-endpoint (component/using
                        (webapp-endpoint-component port)
                        [:webapp-handler])))

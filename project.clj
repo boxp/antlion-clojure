@@ -11,7 +11,7 @@
                  [org.clojure/tools.namespace "0.2.10"]
                  [com.taoensso/carmine "2.15.0"]
                  [environ "1.1.0"]
-                 [ring "1.6.1"]
+                 [ring "1.6.2"]
                  [ring/ring-json "0.4.0"]
                  [compojure "1.6.0"]
                  [cheshire "5.7.1"]

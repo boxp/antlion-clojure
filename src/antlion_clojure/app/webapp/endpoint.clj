@@ -12,7 +12,10 @@
   [{:keys [webapp-handler] :as comp}]
   (routes
     (GET "/" [req] (handler/index webapp-handler))
-    (route/not-found "<h1>404 page not found</h1>")))
+    (route/not-found
+      {:status 404
+       :headers {"Content-Type" "text/html"}
+       :body "<h1>404 page not found</h1>"})))
 
 (defn app
   [comp]
@@ -24,7 +27,7 @@
   (start [this]
     (println ";; Starting WebappEndpointComponent")
     (-> this
-        (assoc :server (server/run-jetty (app this) {:port port :join? false}))))
+        (assoc :server (server/run-jetty (app this) {:port (:port this) :join? false}))))
   (stop [this]
     (println ";; Stopping WebappEndpointComponent")
     (.stop (:server this))
