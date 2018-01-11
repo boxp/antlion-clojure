@@ -48,3 +48,6 @@ spec:
               secretKeyRef:
                 name: antlion-clojure
                 key: dynamodb-endpoint
+        resources:
+          requests:
+            cpu: 20m
