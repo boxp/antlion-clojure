@@ -294,9 +294,12 @@
 
 (defn- get-reviewer
   [{:keys [slack dynamodb res] :as opt} usergroups-str]
-  (let [usergroups-users (some->> usergroups-str
-                                  slack/parse-usergroups
-                                  (slack/usergroups-users slack))
+  (let [usergroups-users (or (some->> usergroups-str
+                                      slack/parse-usergroups
+                                      (slack/usergroups-users slack))
+                             (some->> usergroups-str
+                                      slack/parse-user
+                                      vector))
         reviewers (-> (dynamodb/get-all-reviewers dynamodb) (remove-me res))]
     (if (seq usergroups-users)
       (some->> reviewers
