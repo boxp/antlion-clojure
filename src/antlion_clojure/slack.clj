@@ -128,7 +128,7 @@
           (assoc :rtm-connection rtm-connection))))
   (stop [{:keys [rtm-connection] :as this}]
       (println ";; Stopping SlackComponent")
-      (when-not (:dispatcher rtm-connection)
+      (when-not (nil? rtm-connection)
         (rtm/send-event (:dispatcher rtm-connection) :close))
       (-> this
           (dissoc :rtm-connection))))

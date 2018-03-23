@@ -362,6 +362,45 @@
                  :channel (:channel res)
                  :text (str "led value: " value)}))
 
+(defn- set-response
+  [{:keys [slack res dynamodb] :as opt} name keywords-str response-text-coll]
+  (try
+    (let [response {:name name
+                    :keywords (clojure.string/split keywords-str #",")
+                    :response-text (clojure.string/join " " response-text-coll)}]
+      (dynamodb/set-response dynamodb response)
+      {:type :message
+       :user (:user res)
+       :channel (:channel res)
+       :text (str "ﾄｳﾛｸｼﾀﾖ!\n"
+                  "```\n"
+                  "name          : " (:name response) "\n"
+                  "keywords      : " (-> response :keywords str) "\n"
+                  "response-text : " (:response-text response) "\n"
+                  "```")})
+
+    (catch Exception e {:type :message
+                        :user (:user res)
+                        :channel (:channel res)
+                        :text (str "ｼｯﾊﾟｲｼﾀ!")})))
+
+(defn- rm-response
+  [{:keys [slack res dynamodb] :as opt} name]
+  (try
+    (dynamodb/rm-response dynamodb name)
+    {:type :message
+     :user (:user res)
+     :channel (:channel res)
+     :text (str "ｹｼﾀﾖ!\n"
+                "```\n"
+                "name          : " name "\n"
+                "```")}
+
+    (catch Exception e {:type :message
+                        :user (:user res)
+                        :channel (:channel res)
+                        :text (str "ｼｯﾊﾟｲｼﾀ!")})))
+
 (defn- help
   [{:keys [user channel] :as res} me]
   (map->Payload {:type :message
@@ -371,21 +410,23 @@
                  (str
                      "ﾂｶｲｶﾀ\n"
                      "```"
-                      me " help                                    : この文章を表示\n"
-                      me " fyi                                     : メモ一覧を表示\n"
-                      me " set-fyi <title> <body>                  : <title> <body>をメモ\n"
-                      me " rm-fyi <title>                          : <title>を削除\n"
-                      me " set-lemming-channel <channel>           : <channel>でCO2濃度の警告を出す\n"
-                      me " get-co2                                 : CO2濃度を確認する\n"
-                      me " review <pr> <usergroup?>                : <pr>を誰かに割り振る(<usergroup?>に絞る事が出来る)\n"
-                      me " <S-Expression>                          : <S-Expression>を評価\n"
-                      "------------------ 管理者限定機能 ------------------\n"
-                      me " add-allowed-channel <channel>           : <channel>を監視対象から外す\n"
-                      me " rm-allowed-channel <channel>            : <channel>を監視対象に戻す\n"
-                      me " add-reviewer <slack-user> <github-user> : <slack-user>をレビュワーに登録する\n"
-                      me " rm-reviewer <slack-user>                : <slack-user>をレビュワーから外す\n"
-                      me " set-problem <problem> <answer>          : <problem>を出題リストに登録する\n"
-                      me " rm-problem <problem>                    : <problem>を出題リストから外す\n"
+                      me " help                                                : この文章を表示\n"
+                      me " fyi                                                 : メモ一覧を表示\n"
+                      me " set-fyi <title> <body>                              : <title> <body>をメモ\n"
+                      me " rm-fyi <title>                                      : <title>を削除\n"
+                      me " set-lemming-channel <channel>                       : <channel>でCO2濃度の警告を出す\n"
+                      me " get-co2                                             : CO2濃度を確認する\n"
+                      me " review <pr> <usergroup?>                            : <pr>を誰かに割り振る(<usergroup?>に絞る事が出来る)\n"
+                      me " set-response <name> <[keywords]> <response-text...> : <[keywords]>への反応を追加\n"
+                      me " rm-response <name>                                  : 反応<name>を削除\n"
+                      me " <S-Expression>                                      : <S-Expression>を評価\n"
+                      "------------------ 管理者限定機能 ----------            --------\n"
+                      me " add-allowed-channel <channel>                       : <channel>を監視対象から外す\n"
+                      me " rm-allowed-channel <channel>                        : <channel>を監視対象に戻す\n"
+                      me " add-reviewer <slack-user> <github-user>             : <slack-user>をレビュワーに登録する\n"
+                      me " rm-reviewer <slack-user>                            : <slack-user>をレビュワーから外す\n"
+                      me " set-problem <problem> <answer>                      : <problem>を出題リストに登録する\n"
+                      me " rm-problem <problem>                                : <problem>を出題リストから外す\n"
                       "```")}))
 
 (defn- channel-leave-handler
@@ -428,31 +469,48 @@
       "rm-allowed-channel" (rm-allowed-channel opt (first args))
       "add-reviewer" (add-reviewer opt (first args) (second args))
       "rm-reviewer" (rm-reviewer opt (first args))
+      "set-response" (set-response opt (first args) (second args) (drop 2 args))
+      "rm-response" (rm-response opt (first args))
       (map->Payload {:type :message
                      :user user
                      :channel channel
                      :text "ﾊﾞｶｼﾞｬﾈｰﾉ"}))))
 
+(defn- matched-response?
+  [txt response]
+  (some #(clojure.string/includes? txt %) (:keywords response)))
+
+(defn- registered-response-handler
+  [{:keys [slack dynamodb res] :as opt} responses]
+  (map->Payload {:type :message
+                 :channel (:channel res)
+                 :text (->> responses first :response-text)}))
+
 (defn- default-message-handler
   [{:keys [slack dynamodb res] :as opt}]
   (let [{:keys [user channel text]} res
-        txt (some-> text (split #"\s+" 2) second)]
-    (when (and (slack/message-for-me? opt)
+        txt (some-> text (split #"\s+" 2) second)
+        matched-responses (filter #(matched-response? text %) (dynamodb/get-all-responses dynamodb))]
+    (cond
+      (and (slack/message-for-me? opt)
                (not (slack/message-from-me? opt)))
       (cond
         (dynamodb/get-checking-question? dynamodb user)
         (check-question opt)
         (= (-> txt first) \()
         (eval opt txt)
-        :else (command-message-handler opt)))))
+        :else (command-message-handler opt))
+      (and (not-empty matched-responses) (not (slack/message-from-me? opt)))
+      (registered-response-handler opt matched-responses)
+      :else nil)))
 
 (defn message-handler
   [{:keys [slack dynamodb res] :as opt}]
-  (->> (case (:subtype res)
-         "channel_leave" (channel-leave-handler opt)
-         "group_leave" (channel-leave-handler opt)
-         (default-message-handler opt))
-       (slack/reaction! slack)))
+  (some->> (case (:subtype res)
+             "channel_leave" (channel-leave-handler opt)
+             "group_leave" (channel-leave-handler opt)
+             (default-message-handler opt))
+           (slack/reaction! slack)))
 
 (defn lemming-handler
   [{:keys [slack dynamodb res] :as opt} co2]

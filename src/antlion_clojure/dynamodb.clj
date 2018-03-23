@@ -22,6 +22,9 @@
                           :block? true}]
    :antlion-clojure-last-state [[:name :s]
                          {:throughput {:read 1 :write 1}
+                          :block? true}]
+   :antlion-clojure-response [[:name :s]
+                         {:throughput {:read 1 :write 1}
                           :block? true}]})
 
 (defn delete-tables
@@ -43,11 +46,13 @@
 
 (defn set-leaving-allowed?
   [{:keys [opts] :as comp} user-id]
-  (far/update-item opts :antlion-clojure-user {:id user-id} {:leaving-allowed? [:put true]}))
+  (far/put-item opts :antlion-clojure-user {:id user-id
+                                            :leaving-allowed? true}))
 
 (defn rm-leaving-allowed?
   [{:keys [opts] :as comp} user-id]
-  (far/update-item opts :antlion-clojure-user {:id user-id} {:leaving-allowed? [:put false]}))
+  (far/put-item opts :antlion-clojure-user {:id user-id
+                                            :leaving-allowed? false}))
 
 (defn get-checking-question?
   [{:keys [opts] :as comp} user-id]
@@ -55,11 +60,13 @@
 
 (defn set-checking-question?
   [{:keys [opts] :as comp} user-id question]
-  (far/update-item opts :antlion-clojure-user {:id user-id} {:checking-question? [:put question]}))
+  (far/put-item opts :antlion-clojure-user {:id user-id
+                                            :checking-question? question}))
 
 (defn rm-checking-question?
   [{:keys [opts] :as comp} user-id]
-  (far/update-item opts :antlion-clojure-user {:id user-id} {:checking-question? [:delete]}))
+  (far/put-item opts :antlion-clojure-user {:id user-id
+                                            :checking-question? nil}))
 
 (defn get-problem
   [{:keys [opts] :as comp} question]
@@ -71,9 +78,9 @@
 
 (defn set-problem
   [{:keys [opts] :as comp} question answer]
-  (far/update-item opts :antlion-clojure-problem
-                   {:question question}
-                   {:answer [:put (far/freeze answer)]}))
+  (far/put-item opts :antlion-clojure-problem
+                   {:question question
+                    :answer (far/freeze answer)}))
 
 (defn rm-problem
   [{:keys [opts] :as comp} question]
@@ -85,10 +92,10 @@
 
 (defn set-fyi
   [{:keys [opts] :as comp} user-id title information]
-  (far/update-item opts :antlion-clojure-fyi
-                   {:title title}
-                   {:information [:put information]
-                    :user-id [:put user-id]}))
+  (far/put-item opts :antlion-clojure-fyi
+                   {:title title
+                    :information information
+                    :user-id user-id}))
 
 (defn rm-fyi
   [{:keys [opts] :as comp} user-id title]
@@ -100,15 +107,15 @@
 
 (defn add-leaving-allowed-channel
   [{:keys [opts] :as comp} id]
-  (far/update-item opts :antlion-clojure-channel
-                   {:id id}
-                   {:leaving-allowed? [:put true]}))
+  (far/put-item opts :antlion-clojure-channel
+                   {:id id
+                    :leaving-allowed? true}))
 
 (defn rm-leaving-allowed-channel
   [{:keys [opts] :as comp} id]
-  (far/update-item opts :antlion-clojure-channel
-                   {:id id}
-                   {:leaving-allowed? [:put false]}))
+  (far/put-item opts :antlion-clojure-channel
+                   {:id id
+                    :leaving-allowed? false}))
 
 (defn get-all-reviewers
   [{:keys [opts] :as comp}]
@@ -116,10 +123,10 @@
 
 (defn add-reviewer
   [{:keys [opts] :as comp} github-id id]
-  (far/update-item opts :antlion-clojure-user
-                   {:id id}
-                   {:reviewer? [:put true]
-                    :github-id [:put github-id]}))
+  (far/put-item opts :antlion-clojure-user
+                   {:id id
+                    :reviewer? true
+                    :github-id github-id}))
 
 (defn rm-reviewer
   [{:keys [opts] :as comp} id]
@@ -137,9 +144,9 @@
 
 (defn- set-notify
   [{:keys [opts] :as comp} name channel-id]
-  (far/update-item opts :antlion-clojure-notify-channel
-                   {:name name}
-                   {:channel-id [:put channel-id]}))
+  (far/put-item opts :antlion-clojure-notify-channel
+                   {:name name
+                    :channel-id channel-id}))
 
 (defn set-lemming-channel
   [{:keys [opts] :as comp} channel-id]
@@ -155,13 +162,28 @@
 
 (defn- set-last-state
   [{:keys [opts] :as comp} name state]
-  (far/update-item opts :antlion-clojure-last-state
-                   {:name name}
-                   {:state [:put state]}))
+  (far/put-item opts :antlion-clojure-last-state
+                   {:name name
+                    :state state}))
 
 (defn set-lemming-last-state
   [{:keys [opts] :as comp} state]
   (set-last-state comp "lemming" state))
+
+(defn set-response
+  [{:keys [opts] :as c} response]
+  (far/put-item opts :antlion-clojure-response
+                   {:name (:name response)
+                    :response-text (:response-text response)
+                    :keywords (-> response :keywords)}))
+
+(defn rm-response
+  [{:keys [opts] :as c} response-name]
+  (far/delete-item opts :antlion-clojure-response {:name response-name}))
+
+(defn get-all-responses
+  [{:keys [opts] :as c}]
+  (far/scan opts :antlion-clojure-response))
 
 (defrecord DynamoDBComponent [opts access-key secret-key endpoint]
   component/Lifecycle
