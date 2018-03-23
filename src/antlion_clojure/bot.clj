@@ -490,7 +490,7 @@
   [{:keys [slack dynamodb res] :as opt}]
   (let [{:keys [user channel text]} res
         txt (some-> text (split #"\s+" 2) second)
-        matched-responses (filter #(matched-response? text %) (dynamodb/get-all-responses dynamodb))]
+        matched-responses (some->> (dynamodb/get-all-responses dynamodb) (filter #(matched-response? text %)))]
     (cond
       (and (slack/message-for-me? opt)
                (not (slack/message-from-me? opt)))
