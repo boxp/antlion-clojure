@@ -478,8 +478,9 @@
 
 (defn- matched-response?
   [txt response]
-  (some->> (:keywords response)
-           (some #(clojure.string/includes? txt %))))
+  (when txt
+    (some->> (:keywords response)
+             (some #(clojure.string/includes? txt %)))))
 
 (defn- registered-response-handler
   [{:keys [slack dynamodb res] :as opt} responses]
