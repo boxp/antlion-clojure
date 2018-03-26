@@ -41,7 +41,8 @@
 (defn message-for-me?
   [{:keys [slack res] :as opt}]
   (when (:text res)
-    (re-matches (re-pattern (str "\\<\\@"
+    (re-matches (re-pattern (str "(?s)"
+                                 "\\<\\@"
                                  (-> slack :rtm-connection :start :self :id)
                                  "\\> .*"))
                 (:text res))))

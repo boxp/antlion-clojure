@@ -450,7 +450,7 @@
 (defn- command-message-handler
   [{:keys [slack dynamodb res] :as opt}]
   (let [{:keys [user channel]} res
-        txt (split (:text res) #"\s+")
+        txt (split (:text res) #"( |　)+")
         me (first txt)
         command (second txt)
         args (drop 2 txt)]
@@ -491,7 +491,7 @@
 (defn- default-message-handler
   [{:keys [slack dynamodb res] :as opt}]
   (let [{:keys [user channel text]} res
-        txt (some-> text (split #"\s+" 2) second)
+        txt (some-> text (split #"( |　)+" 2) second)
         matched-responses (some->> (dynamodb/get-all-responses dynamodb) (filter #(matched-response? text %)))]
     (cond
       (and (slack/message-for-me? opt)
