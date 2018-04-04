@@ -48,11 +48,6 @@ spec:
               secretKeyRef:
                 name: antlion-clojure
                 key: dynamodb-endpoint
-          - name: ANTLION_CLOJURE_GOOGLE_API_KEY
-            valueFrom:
-              secretKeyRef:
-                name: antlion-clojure
-                key: google-api-key
         resources:
           requests:
             cpu: 20m

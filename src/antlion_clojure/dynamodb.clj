@@ -25,13 +25,7 @@
                           :block? true}]
    :antlion-clojure-response [[:name :s]
                          {:throughput {:read 1 :write 1}
-                          :block? true}]
-   :antlion-clojure-stats [[:type :s]
-                           {:throughput {:read 1 :write 1}
-                            :block? true}]
-   :antlion-clojure-schedule [[:name :s]
-                              {:throughput {:read 1 :write 1}
-                               :block? true}]})
+                          :block? true}]})
 
 (defn delete-tables
   [{:keys [opts] :as comp}]
@@ -190,50 +184,6 @@
 (defn get-all-responses
   [{:keys [opts] :as c}]
   (far/scan opts :antlion-clojure-response))
-
-(defn add-stats
-  [{:keys [opts] :as c} type stat limit]
-  (let [stats (far/get-item opts :antlion-clojure-stats {:type type})]
-    (->> (or (:coll stats) [])
-         (take-last (dec limit))
-         vec
-         (#(conj % stat))
-         (assoc {:type type} :coll)
-         (far/put-item opts :antlion-clojure-stats))))
-
-(defn get-stats
-  [{:keys [opts] :as c} type]
-  (some->> (far/get-item opts :antlion-clojure-stats {:type type})
-           :coll))
-
-(def page-speed-type "page-speed")
-
-(defn add-page-speed
-  [{:keys [opts] :as c} url page-speed]
-  (add-stats c (str page-speed-type "/" url) page-speed 10))
-
-(defn get-page-speed
-  [{:keys [opts] :as c} url]
-  (get-stats c (str page-speed-type "/" url)))
-
-(defn add-schedule
-  [{:keys [opts] :as c} name {:keys [url channel-id handler-id hour minute second millisecond] :as schedule}]
-  (far/put-item opts :antlion-clojure-schedule
-                   {:name name
-                    :handler-id handler-id
-                    :channel-id channel-id
-                    :hour hour
-                    :minute minute
-                    :second second
-                    :millisecond millisecond}))
-
-(defn rm-schedule
-  [{:keys [opts] :as c} name]
-  (far/delete-item opts :antlion-clojure-schedule {:name name}))
-
-(defn get-all-schedule
-  [{:keys [opts] :as c}]
-  (far/scan opts :antlion-clojure-schedule))
 
 (defrecord DynamoDBComponent [opts access-key secret-key endpoint]
   component/Lifecycle

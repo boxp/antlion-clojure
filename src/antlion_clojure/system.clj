@@ -9,9 +9,7 @@
             [antlion-clojure.infra.datasource.pubsub :refer [pubsub-subscription-component pubsub-publisher-component]]
             [antlion-clojure.infra.repository.lemming :refer [lemming-repository-component]]
             [antlion-clojure.infra.repository.to-lemming :refer [to-lemming-repository-component]]
-            [antlion-clojure.domain.usecase.to-lemming :refer [to-lemming-usecase-component]]
-            [antlion-clojure.infra.repository.page-speed :refer [->PageSpeedRepository]]
-            [antlion-clojure.domain.usecase.page-speed :refer [->PageSpeedUsecase]])
+            [antlion-clojure.domain.usecase.to-lemming :refer [to-lemming-usecase-component]])
   (:gen-class))
 
 (defn antlion-clojure-system
@@ -20,7 +18,6 @@
            antlion-clojure-aws-access-key
            antlion-clojure-aws-secret-key
            antlion-clojure-dynamodb-endpoint
-           antlion-clojure-google-api-key
            master-user-name
            port]
     :as config-options}]
@@ -38,17 +35,12 @@
     :to-lemming-usecase (component/using
                              (to-lemming-usecase-component)
                              [:to-lemming-repository])
-    :page-speed-repository (->PageSpeedRepository antlion-clojure-google-api-key)
-    :page-speed-usecase (component/using
-                          (->PageSpeedUsecase nil nil nil)
-                          [:page-speed-repository :slack :dynamodb])
     :bot (component/using
            (bot-component {:master-user-name master-user-name})
            [:slack
             :dynamodb
             :lemming-repository
-            :to-lemming-usecase
-            :page-speed-usecase])
+            :to-lemming-usecase])
     :webapp-handler (webapp-handler-component)
 
     :webapp-endpoint (component/using
@@ -62,7 +54,6 @@
    :antlion-clojure-aws-access-key (env :antlion-clojure-aws-access-key)
    :antlion-clojure-aws-secret-key (env :antlion-clojure-aws-secret-key)
    :antlion-clojure-dynamodb-endpoint (env :antlion-clojure-dynamodb-endpoint)
-   :antlion-clojure-google-api-key (env :antlion-clojure-google-api-key)
    :master-user-name (env :antlion-clojure-master-user-name)
    :port (-> (or (env :port) "3000") Integer/parseInt)})
 

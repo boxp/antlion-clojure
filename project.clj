@@ -18,10 +18,7 @@
                  [tentacles "0.5.1"]
                  [com.stuartsierra/component "0.3.2"]
                  [com.taoensso/faraday "1.9.0"]
-                 [com.google.cloud/google-cloud-pubsub "0.17.2-alpha"]
-                 [clj-http "3.8.0"]
-                 [jarohen/chime "0.2.2"]]
+                 [com.google.cloud/google-cloud-pubsub "0.17.2-alpha"]]
   :profiles
-  {:dev {:source-paths ["src" "dev"]
-         :dependencies [[org.clojure/test.check "0.9.0"]]}
+  {:dev {:source-paths ["src" "dev"]}
    :uberjar {:main antlion-clojure.system}})

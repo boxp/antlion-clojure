@@ -7,7 +7,6 @@
             [antlion-clojure.github :as github]
             [antlion-clojure.infra.repository.lemming :refer [subscribe]]
             [antlion-clojure.domain.usecase.to-lemming :refer [set-led]]
-            [antlion-clojure.domain.usecase.page-speed :refer [post-daily-report]]
             [slack-rtm.core :as rtm]
             [clojure.string :refer [split]]
             [clojure.set :refer [intersection]]
@@ -402,10 +401,6 @@
                         :channel (:channel res)
                         :text (str "ｼｯﾊﾟｲｼﾀ!")})))
 
-(defn- page-speed-report
-  [{:keys [slack res dynamodb page-speed-usecase] :as opt}]
-  (post-daily-report page-speed-usecase (:channel res)))
-
 (defn- help
   [{:keys [user channel] :as res} me]
   (map->Payload {:type :message
@@ -424,7 +419,6 @@
                       me " review <pr> <usergroup?>                            : <pr>を誰かに割り振る(<usergroup?>に絞る事が出来る)\n"
                       me " set-response <name> <[keywords]> <response-text...> : <[keywords]>への反応を追加\n"
                       me " rm-response <name>                                  : 反応<name>を削除\n"
-                      me " get-page-speed-report                               : PageSpeedInsightsのレポートを受け取る\n"
                       me " <S-Expression>                                      : <S-Expression>を評価\n"
                       "------------------ 管理者限定機能 ----------            --------\n"
                       me " add-allowed-channel <channel>                       : <channel>を監視対象から外す\n"
@@ -477,7 +471,6 @@
       "rm-reviewer" (rm-reviewer opt (first args))
       "set-response" (set-response opt (first args) (second args) (drop 2 args))
       "rm-response" (rm-response opt (first args))
-      "get-page-speed-report" (page-speed-report opt)
       (map->Payload {:type :message
                      :user user
                      :channel channel
@@ -551,7 +544,7 @@
    :headers {"Content-Type" "text/html"}
    :body    "hello HTTP!"})
 
-(defrecord BotComponent [master-user-name port server slack dynamodb lemming-repository to-lemming-usecase page-speed-usecase]
+(defrecord BotComponent [master-user-name port server slack dynamodb lemming-repository to-lemming-usecase]
   component/Lifecycle
   (start [{:keys [slack dynamodb lemming-repository to-lemming-usecase] :as this}]
     (println ";; Starting BotComponent")
