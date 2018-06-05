@@ -296,6 +296,7 @@
          (map (fn [{:keys [name keywords response-text]}]
                 (str name ": "
                      (as-> keywords $ (clojure.string/join "," $))
+                     " "
                      (as-> response-text $ (clojure.string/replace $ #"\`|\n" "") (take 30 $) (apply str $))))
               responses)
          (clojure.string/join "\n"))
