@@ -2,7 +2,7 @@
   (:require [clojure.spec.alpha :as s]
             [clojure.core.async.impl.protocols :as ap]))
 
-(s/def :schedule/channel-id string?)
+(s/def :schedule/channel-ids (s/coll-of string?))
 (s/def :schedule/handler-id string?)
 (s/def :schedule/hour (s/and number? #(>= % 0) #(< % 24)))
 (s/def :schedule/minute (s/and number? #(>= % 0) #(< % 60)))

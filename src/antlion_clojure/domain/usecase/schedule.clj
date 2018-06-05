@@ -3,9 +3,9 @@
             [antlion-clojure.domain.entity.schedule :as ent]
             [antlion-clojure.infra.repository.schedule :as repo]))
 
-(s/fdef subscribe-schedule
+(s/fdef subscribe-daily-schedule
   :args (s/cat :schedule ::ent/schedule)
   :ret ::ent/schedule-chan)
-(defn subscribe-schedule
+(defn subscribe-daily-schedule
   [schedule]
-  (repo/subscribe-schedule schedule))
+  (repo/subscribe-daily-schedule schedule))

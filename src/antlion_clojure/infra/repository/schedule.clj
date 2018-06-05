@@ -6,10 +6,10 @@
             [antlion-clojure.domain.entity.schedule :as ent])
   (:import [org.joda.time DateTimeZone]))
 
-(s/fdef subscribe-schedule
+(s/fdef subscribe-daily-schedule
   :args (s/cat :schedule ::ent/schedule)
   :ret ::ent/schedule-chan)
-(defn subscribe-schedule
+(defn subscribe-daily-schedule
   [{:keys [hour minute second millisecond] :as schedule}]
   (->> (periodic-seq (.. (t/now)
                          (withZone (DateTimeZone/forID "Asia/Tokyo"))

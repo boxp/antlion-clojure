@@ -289,6 +289,26 @@
                      :channel channel
                      :text "ｹﾝｹﾞﾝｶﾞﾅｲｰﾖ!"}))))
 
+(defn- format-responses
+  [responses]
+  (str "```\n"
+       (->>
+         (map (fn [{:keys [name keywords response-text]}]
+                (str name ": "
+                     (as-> keywords $ (clojure.string/join "," $))
+                     (as-> response-text $ (clojure.string/replace $ #"\`|\n" "") (take 30 $) (apply str $))))
+              responses)
+         (clojure.string/join "\n"))
+       "\n"
+       "```"))
+
+(defn- get-all-response
+  [{:keys [slack dynamodb res] :as opt}]
+  {:type :message
+   :user (:user res)
+   :channel (:channel res)
+   :text (->> (dynamodb/get-all-responses dynamodb) format-responses)})
+
 (defn- remove-me
   [reviewers res]
   (remove #(= (-> res :user) (:id %)) reviewers))
@@ -424,6 +444,7 @@
                       me " review <pr> <usergroup?>                            : <pr>を誰かに割り振る(<usergroup?>に絞る事が出来る)\n"
                       me " set-response <name> <[keywords]> <response-text...> : <[keywords]>への反応を追加\n"
                       me " rm-response <name>                                  : 反応<name>を削除\n"
+                      me " get-all-response                                    : すべての反応を表示\n"
                       me " get-page-speed-report                               : PageSpeedInsightsのレポートを受け取る\n"
                       me " <S-Expression>                                      : <S-Expression>を評価\n"
                       "------------------ 管理者限定機能 ----------            --------\n"
@@ -477,6 +498,7 @@
       "rm-reviewer" (rm-reviewer opt (first args))
       "set-response" (set-response opt (first args) (second args) (drop 2 args))
       "rm-response" (rm-response opt (first args))
+      "get-all-response" (get-all-response opt)
       "get-page-speed-report" (page-speed-report opt)
       (map->Payload {:type :message
                      :user user
