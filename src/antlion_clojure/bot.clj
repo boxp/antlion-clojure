@@ -308,7 +308,9 @@
   {:type :message
    :user (:user res)
    :channel (:channel res)
-   :text (->> (dynamodb/get-all-responses dynamodb) format-responses)})
+   :text (->> (dynamodb/get-all-responses dynamodb)
+              (sort-by :name)
+              format-responses)})
 
 (defn- remove-me
   [reviewers res]

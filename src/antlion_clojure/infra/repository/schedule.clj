@@ -3,7 +3,8 @@
             [chime :refer [chime-ch]]
             [clj-time.core :as t]
             [clj-time.periodic :refer [periodic-seq]]
-            [antlion-clojure.domain.entity.schedule :as ent])
+            [antlion-clojure.domain.entity.schedule :as ent]
+            [antlion-clojure.dynamodb :as dynamo])
   (:import [org.joda.time DateTimeZone]))
 
 (s/fdef subscribe-daily-schedule
