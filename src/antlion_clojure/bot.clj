@@ -503,10 +503,7 @@
       "rm-response" (rm-response opt (first args))
       "get-all-response" (get-all-response opt)
       "get-page-speed-report" (page-speed-report opt)
-      (map->Payload {:type :message
-                     :user user
-                     :channel channel
-                     :text "ﾊﾞｶｼﾞｬﾈｰﾉ"}))))
+      nil)))
 
 (defn- matched-response?
   [txt response]
@@ -528,14 +525,16 @@
     (cond
       (and (slack/message-for-me? opt)
                (not (slack/message-from-me? opt)))
-      (cond
-        (dynamodb/get-checking-question? dynamodb user)
-        (check-question opt)
-        (= (-> txt first) \()
-        (eval opt txt)
-        :else (command-message-handler opt))
-      (and (not-empty matched-responses) (not (slack/message-from-me? opt)))
-      (registered-response-handler opt matched-responses)
+      (or
+        (cond (dynamodb/get-checking-question? dynamodb user) (check-question opt)
+              (= (-> txt first) \() (eval opt txt)
+              :else (command-message-handler opt))
+        (and (not-empty matched-responses) (registered-response-handler opt matched-responses))
+        (map->Payload {:type :message
+                       :user user
+                       :channel channel
+                       :text "ﾊﾞｶｼﾞｬﾈｰﾉ"}))
+      (and (not-empty matched-responses) (not (slack/message-from-me? opt))) (registered-response-handler opt matched-responses)
       :else nil)))
 
 (defn message-handler
