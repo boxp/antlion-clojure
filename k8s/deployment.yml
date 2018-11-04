@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
       - name: antlion-clojure
-        image: asia.gcr.io/boxp-tk/antlion-clojure:${CIRCLE_SHA1}
+        image: gcr.io/${PROJECT_ID}/antlion-clojure:${REVISION_ID}
         env:
           - name: ANTLION_CLOJURE_TOKEN
             valueFrom:
